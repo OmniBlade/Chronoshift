@@ -15,7 +15,7 @@
  */
 #include "lzostraw.h"
 #include "endiantype.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 #include "minmax.h"
 #include <cstring>
 

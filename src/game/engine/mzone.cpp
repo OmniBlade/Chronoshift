@@ -14,7 +14,7 @@
  *            LICENSE
  */
 #include "mzone.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 
 #ifndef PLATFORM_WINDOWS
 #include <strings.h>

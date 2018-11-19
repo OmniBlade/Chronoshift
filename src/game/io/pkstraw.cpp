@@ -14,7 +14,7 @@
  *            LICENSE
  */
 #include "pkstraw.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 #include "minmax.h"
 
 PKStraw::PKStraw(StrawControl mode, Straw &rstraw) :

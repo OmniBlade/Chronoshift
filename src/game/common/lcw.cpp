@@ -13,7 +13,7 @@
  *            LICENSE
  */
 #include "lcw.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 #include <limits.h>
 #include <string.h>
 

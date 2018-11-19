@@ -15,7 +15,7 @@
  */
 #include "mpmath.h"
 #include "endiantype.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 #include "minmax.h"
 #include <stdlib.h>
 #include <cstring>

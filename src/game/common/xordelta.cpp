@@ -13,7 +13,7 @@
  *            LICENSE
  */
 #include "xordelta.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 
 #define XOR_SMALL 127
 #define XOR_MED 255

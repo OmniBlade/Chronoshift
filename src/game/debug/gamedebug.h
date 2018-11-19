@@ -1,9 +1,10 @@
 /**
  * @file
  *
+ * @author CCHyper
  * @author OmniBlade
  *
- * @brief Debug logging interface.
+ * @brief Debug logging and assertion interface.
  *
  * @copyright Chronoshift is free software: you can redistribute it and/or
  *            modify it under the terms of the GNU General Public License
@@ -23,65 +24,45 @@
 extern "C" {
 #endif
 
-#ifdef CHRONOSHIFT_DEBUG
+#ifdef CHRONOSHIFT_LOGGING
 
-#define DEBUG_LOG(message, ...) Debug_Log(message, ##__VA_ARGS__)
-#define DEBUG_LINE_LOG(message, ...) Debug_Log("%s %d " message, __FILE__, __LINE__, ##__VA_ARGS__)
 #define DEBUG_INIT(flags) Debug_Init(flags)
 #define DEBUG_STOP() Debug_Shutdown()
 
-#define DEBUG_ASSERT(exp) \
-    if (!(exp)) { \
-        Debug_Log("%s %d Assert failed\n", __FILE__, __LINE__); \
-    }
+#define DEBUG_LOG(msg, ...) Debug_Log(msg, ##__VA_ARGS__)
+#define DEBUG_LINE_LOG(msg, ...) Debug_Log("%s %d " msg, __FILE__, __LINE__, ##__VA_ARGS__)
 
-#define ASSERT_PRINT(exp, msg, ...) \
-    if (!(exp)) { \
-        Debug_Log("%s %d " msg, __FILE__, __LINE__, ##__VA_ARGS__); \
-    }
-
-#define DEBUG_ASSERT_PRINT(exp, msg, ...) \
-    if (!(exp)) { \
-        Debug_Log("%s %d " msg, __FILE__, __LINE__, ##__VA_ARGS__); \
-    }
+enum {
+    DEBUG_BUFFER_SIZE = 4096
+};
 
 enum DebugOptions
 {
     DEBUG_LOG_TO_FILE = 1 << 0,
-    DEBUG_LOG_TO_CONSOLE = 1 << 1,
-    DEBUG_PREFIX_TICKS = 1 << 2,
-    DEBUG_BUFFER_SIZE = 0x2000,
+    DEBUG_LOG_TO_DEBUGGER = 1 << 1,
+    DEBUG_LOG_TO_CONSOLE = 1 << 2,
+    DEBUG_PREFIX_TICKS = 1 << 3,
 };
 
 void Debug_Init(int flags);
-char *Get_Time_String();
-void Debug_Log(const char *format, ...);
-const char *Prep_Buffer(const char *format, char *buffer);
-char *Get_Tick_String();
-void Log_Output(const char *buffer);
-void Remove_Unprintable(char *buffer);
-void Debug_Crash(const char *format, ...);
-int Debug_Crash_Box(const char *buffer, int log_result);
 void Debug_Shutdown();
 int Debug_Get_Flags();
 void Debug_Set_Flags(int flags);
+void Debug_Log(const char *format, ...);
 
-#else // !CHRONOSHIFT_DEBUG
+#else // !CHRONOSHIFT_LOGGING
 
-#define DEBUG_LOG(message, ...) ((void)0)
-#define DEBUG_LINE_LOG(message, ...) ((void)0)
 #define DEBUG_INIT(flags) ((void)0)
 #define DEBUG_STOP() ((void)0)
-#define DEBUG_ASSERT(exp) ((void)0)
-#define ASSERT_PRINT(exp, msg, ...) \
-    if (!(exp)) { \
-    }
-#define DEBUG_ASSERT_PRINT(exp, msg, ...) ((void)0)
 
-#endif // CHRONOSHIFT_DEBUG
+#define DEBUG_LOG(msg, ...) ((void)0)
+#define DEBUG_LOG_CONDITIONAL(exp, msg, ...) ((void)0)
+#define DEBUG_LINE_LOG(msg, ...) ((void)0)
+
+#endif // CHRONOSHIFT_LOGGING
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#endif // _GAMEDEBUG_H
+#endif // GAMEDEBUG_H

@@ -86,6 +86,7 @@ set(GAMEENGINE_SRC
     game/crypto/mpmath.cpp
     game/crypto/pk.cpp
     game/crypto/sha.cpp
+    game/debug/gameassert.cpp
     game/debug/gamedebug.cpp
     game/engine/abstract.cpp
     game/engine/abstracttype.cpp

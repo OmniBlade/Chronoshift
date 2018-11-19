@@ -15,7 +15,7 @@
  */
 #include "b64straw.h"
 #include "base64.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 #include <cstring>
 
 using std::memcpy;

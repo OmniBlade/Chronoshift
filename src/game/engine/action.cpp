@@ -14,7 +14,7 @@
  *            LICENSE
  */
 #include "action.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 
 #ifndef PLATFORM_WINDOWS
 #include <strings.h>

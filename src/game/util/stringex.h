@@ -166,6 +166,20 @@ inline char *strtrim(char *str)
     return str;
 }
 
+inline void Remove_Unprintable(char *buffer)
+{
+    for (char *i = &buffer[strlen(buffer) - 1]; i >= buffer; --i) {
+        char tmp = *i;
+
+        //
+        // Chars in the range 0 - 32 ('\0' - ' ') are unprintable so remove.
+        //
+        if (tmp >= '\0' && tmp < ' ' && tmp != '\n' && tmp != '\r') {
+            *i = ' ';
+        }
+    }
+}
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

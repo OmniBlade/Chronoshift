@@ -16,7 +16,7 @@
 #include "shape.h"
 #include "alloc.h"
 #include "endiantype.h"
-#include "gamedebug.h"
+#include "gameassert.h"
 #include "lcw.h"
 #include "minmax.h"
 #include "xordelta.h"

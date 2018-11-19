@@ -15,6 +15,7 @@
  */
 #include "startup.h"
 #include "gamedebug.h"
+#include "gameassert.h"
 
 #ifndef PLATFORM_WINDOWS
 #include <sys/statvfs.h>
