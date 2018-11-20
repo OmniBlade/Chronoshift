@@ -13,7 +13,7 @@
  *            LICENSE
  */
 #include "commbuff.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include <cstring>
 
 using std::memcpy;

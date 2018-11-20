@@ -15,7 +15,7 @@
  */
 #include "shapebtn.h"
 #include "drawshape.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "mouse.h"
 
 ShapeButtonClass::ShapeButtonClass(unsigned id, void *button_shape, int x, int y) :

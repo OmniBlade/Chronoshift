@@ -15,7 +15,7 @@
  */
 #include "gamekeyboard.h"
 #include "gameoptions.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "globals.h"
 #include "display.h"
 #include "iomap.h"

@@ -15,7 +15,7 @@
  */
 #include "readline.h"
 #include "filestraw.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "stringex.h"
 
 int Read_Line(FileClass &file, char *line, int length, BOOL &eof)

@@ -16,7 +16,7 @@
 #include "always.h"
 #include "b64pipe.h"
 #include "base64.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "minmax.h"
 #include <cstring>
 

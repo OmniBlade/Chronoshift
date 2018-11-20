@@ -20,7 +20,7 @@
 
 #include "always.h"
 #include "bitarray.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include <new>
 #include <stdlib.h>
 #include <string.h>

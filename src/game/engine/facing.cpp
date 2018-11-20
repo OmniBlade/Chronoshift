@@ -15,7 +15,7 @@
  */
 #include "facing.h"
 #include "abs.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "minmax.h"
 #include "swap.h"
 

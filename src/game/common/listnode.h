@@ -19,7 +19,7 @@
 #define LISTNODE_H
 
 #include "always.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 
 class GenericList;
 

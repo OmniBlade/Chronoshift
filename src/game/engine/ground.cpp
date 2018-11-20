@@ -14,7 +14,7 @@
  */
 #include "ground.h"
 #include "gameini.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "minmax.h"
 
 #ifndef CHRONOSHIFT_STANDALONE

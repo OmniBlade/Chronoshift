@@ -14,7 +14,6 @@
  *            LICENSE
  */
 #include "gameassert.h"
-#include "gamedebug.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +28,7 @@ int TotalAssertions = 0;
 bool BreakOnException = false;
 
 bool ShowAssertionDialog
-#if defined(PLATFORM_WINDOWS)
+#ifdef PLATFORM_WINDOWS
  = true;
 #else // !PLATFORM_WINDOWS
  = false;
@@ -50,10 +49,10 @@ AssertButtonType Debug_Assertion_Dialog(char const *expr, char const *file, int 
 
     char msgbuff[ASSERT_BUFFER_SIZE];
 
-#if defined(PLATFORM_WINDOWS)
+#ifdef PLATFORM_WINDOWS
 
     char filename[PATH_MAX];
-    GetModuleFileName(nullptr, filename, PATH_MAX);
+    GetModuleFileNameA(nullptr, filename, PATH_MAX);
 
     snprintf(msgbuff,
              sizeof(msgbuff),
@@ -97,16 +96,14 @@ AssertButtonType Debug_Assertion_Dialog(char const *expr, char const *file, int 
         }
     }
 
-#elif defined(PLATFORM_LINUX)
-
+#elif defined PLATFORM_LINUX
     // TODO: Linux GTK?
     // https://github.com/aaronmjacobs/Boxer
 
     // Break on the assert for now.
     result = BUTTON_BREAK;
 
-#elif defined(PLATFORM_OSX)
-
+#elif defined PLATFORM_OSX
     // TODO
     // http://stackoverflow.com/questions/17319180/sdl-cross-platform-message-box-for-linux
     // https://github.com/aaronmjacobs/Boxer/blob/master/src/boxer_osx.mm
@@ -138,7 +135,6 @@ AssertButtonType Debug_Assertion_Dialog(char const *expr, char const *file, int 
             result = BUTTON_RETRY;
             break;
     };
-
 #else
     result = BUTTON_BREAK;
 #endif
@@ -160,7 +156,7 @@ void Debug_Assert(char const *expr, char const *file, int const line, char const
                 msg = "No additional information.";
             }
 
-        #if defined(PLATFORM_WINDOWS)
+        #ifdef PLATFORM_WINDOWS
             // If we are in the debugger, we want to break.
             if (IsDebuggerPresent()) {
                 _break = true;

@@ -14,7 +14,7 @@
  */
 #include "always.h"
 #include "pcxpipe.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "minmax.h"
 #include "pcxrle.h"
 #include <climits>

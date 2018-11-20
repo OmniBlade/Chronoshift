@@ -16,7 +16,7 @@
 
 #include "blowfish.h"
 #include "endiantype.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include "memrev.h"
 #include <string.h>
 

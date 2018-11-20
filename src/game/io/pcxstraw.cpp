@@ -14,7 +14,6 @@
  */
 #include "always.h"
 #include "pcxstraw.h"
-#include "gameassert.h"
 #include "gamedebug.h"
 #include "minmax.h"
 #include "pcxrle.h"

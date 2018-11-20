@@ -19,7 +19,7 @@
 #define INDEX_H
 
 #include "always.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 #include <stdlib.h>
 
 template<typename KeyType, typename ValueType>

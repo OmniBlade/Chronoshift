@@ -4,7 +4,7 @@
  * @author CCHyper
  * @author OmniBlade
  *
- * @brief Debug logging and assertion interface.
+ * @brief Debug logging interface.
  *
  * @copyright Chronoshift is free software: you can redistribute it and/or
  *            modify it under the terms of the GNU General Public License
@@ -44,6 +44,20 @@ CriticalSectionClass DebugMutex;
 #ifdef PLATFORM_WINDOWS
 HANDLE DebugConsoleHandle = 0;
 #endif
+
+void Remove_Unprintable(char *buffer)
+{
+    for (char *i = &buffer[strlen(buffer) - 1]; i >= buffer; --i) {
+        char tmp = *i;
+
+        //
+        // Chars in the range 0 - 32 ('\0' - ' ') are unprintable so remove.
+        //
+        if (tmp >= '\0' && tmp < ' ' && tmp != '\n' && tmp != '\r') {
+            *i = ' ';
+        }
+    }
+}
 
 char *Get_Tick_String()
 {
@@ -186,7 +200,7 @@ bool Set_Console_Properties(HANDLE handle, int x, int y, int w, int h)
     // http://www.cplusplus.com/forum/beginner/12001/
     HINSTANCE kernel32 = LoadLibraryA("Kernel32.dll");
     typedef HWND (*PGetConsoleWindow)();
-    PGetConsoleWindow MyGetConsoleWindow = (PGetConsoleWindow)GetProcAddress( kernel32, "GetConsoleWindow");
+    PGetConsoleWindow MyGetConsoleWindow = (PGetConsoleWindow)GetProcAddress(kernel32, "GetConsoleWindow");
     SetWindowPos(MyGetConsoleWindow(), 0, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
     FreeLibrary(kernel32);
 
@@ -196,7 +210,7 @@ bool Set_Console_Properties(HANDLE handle, int x, int y, int w, int h)
 
 void Debug_Console_Output(const char *buffer)
 {
-#if defined(PLATFORM_WINDOWS)
+#ifdef PLATFORM_WINDOWS
     // TODO: Can we use the console handle to find the window the print to?
     printf("%s", buffer);
 #else
@@ -329,11 +343,7 @@ void Log_Output(const char *buffer)
     }
 
     if (DebugFlags & DEBUG_LOG_TO_CONSOLE) {
-    #if defined(PLATFORM_WINDOWS)
         Debug_Console_Output(buffer);
-    #else
-        printf("%s", buffer);
-    #endif
     }
 
 }

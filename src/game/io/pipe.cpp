@@ -14,7 +14,7 @@
  *            LICENSE
  */
 #include "pipe.h"
-#include "gameassert.h"
+#include "gamedebug.h"
 
 Pipe::~Pipe()
 {
