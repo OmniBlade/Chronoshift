@@ -174,6 +174,7 @@ inline void FootClass::Hook_Me()
     Hook_Function(0x004C3328, *FootClass::Hook_Can_Demolish);
     Hook_Function(0x004C154C, *FootClass::Hook_Sort_Y);
     // Hook_Function(0x004C1B6C, *FootClass::Unlimbo); Needs TechnoClass stuff.
+    Hook_Function(0x004C037C, *FootClass::Safety_Point);
     Hook_Function(0x004C0570, *FootClass::Passable_Cell);
 #endif
 }

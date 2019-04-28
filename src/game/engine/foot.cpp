@@ -372,9 +372,51 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
     return 0;
 }
 
+/**
+ * Looks like it finds the safest cell within a range?
+ *
+ * 0x004C0570
+ */
 cell_t FootClass::Safety_Point(cell_t start_cell, cell_t end_cell, int start, int end)
 {
-    return cell_t();
+    FacingType adj_facing = SS_41B710(Opposite_Facing(Direction_To_Facing(Cell_Direction8(start_cell, end_cell))), 1);
+
+    for (int i = start; i < end; ++i) {
+        cell_t cell = end_cell;
+
+        for (int j = 0; j < i; ++j) {
+            cell = Cell_Get_Adjacent(cell, adj_facing);
+        }
+
+        // If adj_facing is ordinal
+        if ((adj_facing & 1) != 0) {
+            for (int j = 0; j <= 2 * i; ++j) {
+                cell = Cell_Get_Adjacent(cell, SS_41B73C(adj_facing, 3));
+
+                if (Can_Enter_Cell(cell)) {
+                    return cell;
+                }
+            }
+        } else {
+            for (int j = 0; j <= i; ++j) {
+                cell = Cell_Get_Adjacent(cell, SS_41B73C(adj_facing, 4));
+
+                if (Can_Enter_Cell(cell)) {
+                    return cell;
+                }
+            }
+
+            for (int j = 0; j <= i; ++j) {
+                cell = Cell_Get_Adjacent(cell, SS_41B73C(adj_facing, 2));
+
+                if (Can_Enter_Cell(cell)) {
+                    return cell;
+                }
+            }
+        }
+    }
+
+    return -1;
 }
 
 /**
