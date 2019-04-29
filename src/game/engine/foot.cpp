@@ -626,7 +626,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
         FACING_NONE,
         FACING_NORTH };
 
-    if (path == NULL || path->Moves == NULL || path->Length == 0) {
+    if (path == nullptr || path->Moves == nullptr || path->Length == 0) {
         return 0;
     }
 
@@ -670,7 +670,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
 
                             // This should always be true given the possible
                             // values.
-                            if (std::abs(trans_move) == 1) {
+                            if (std::abs((int)trans_move) == 1) {
                                 int score = Passable_Cell(Cell_Get_Adjacent(cell, tmp), tmp, -1, move);
 
                                 if (score != 0) {
