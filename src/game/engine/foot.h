@@ -26,6 +26,13 @@ class TeamClass;
 
 struct PathType
 {
+    cell_t StartCell;
+    int32_t Score; // How costly is it to traverse this route?
+    int32_t Length; // How many moves is this route?
+    FacingType *Moves; // Array of directions, moves to make each cell.
+    uint32_t *Overlap; // Flags of which cells have been checked?
+    cell_t PreviousCell; // Possible name, not 100%
+    cell_t field_14;
 };
 
 class FootClass : public TechnoClass
@@ -174,6 +181,8 @@ inline void FootClass::Hook_Me()
     Hook_Function(0x004C3328, *FootClass::Hook_Can_Demolish);
     Hook_Function(0x004C154C, *FootClass::Hook_Sort_Y);
     // Hook_Function(0x004C1B6C, *FootClass::Unlimbo); Needs TechnoClass stuff.
+    Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
+    Hook_Function(0x004C0130, *FootClass::Optimize_Moves);
     Hook_Function(0x004C037C, *FootClass::Safety_Point);
     Hook_Function(0x004C0570, *FootClass::Passable_Cell);
 #endif

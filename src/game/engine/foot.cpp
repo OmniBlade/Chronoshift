@@ -16,10 +16,12 @@
 #include "foot.h"
 #include "building.h"
 #include "coord.h"
+#include "gamedebug.h"
 #include "globals.h"
 #include "iomap.h"
 #include "session.h"
 #include "team.h"
+#include <cstdlib>
 
 static cell_t StartLocation;
 static cell_t DestLocation;
@@ -356,9 +358,69 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
     return 0;
 }
 
+/**
+ * Registers a cell in the path and check if we visit the cell already.
+ *
+ * 0x004BF5E0
+ */
 BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, int cost, MoveType move)
 {
-    return 0;
+    // Check the flagging for the passed in cell, if its not flagged, then add
+    // facing to what appears to be the move list.
+    if ((path->Overlap[cell / 32] & (1 << (cell % 32))) == 0) {
+        path->Moves[path->Length++] = facing;
+        path->Score += cost;
+        path->Overlap[cell / 32] |= 1 << (cell % 32);
+
+        return true;
+    }
+
+    FacingType last_move = path->Moves[path->Length - 1];
+
+    // If the last facing in the list matches our facing, then do some unflagging
+    // vodoo
+    if (Opposite_Facing(facing) == last_move) {
+        cell_t cellnum = Cell_Get_Adjacent(cell, last_move); // AdjacentCell[last_move] + cell;
+        path->Overlap[cellnum / 32] &= ~(1 << (cellnum % 32));
+        --path->Length;
+
+        return true;
+    }
+
+    // If cell doesn't equal the previous cell perhaps?
+    if (cell != path->PreviousCell) {
+        int count = 0;
+        cell_t test_cell = path->StartCell;
+        FacingType *face_ptr = path->Moves;
+        path->PreviousCell = cell;
+
+        // If the cell isn't the start cell, go through the list and see if any
+        // of the directions we currently have lead to the cell.
+        if (cell != path->StartCell) {
+            for (; count < path->Length; ++count) {
+                test_cell += AdjacentCell[*face_ptr++];
+
+                if (test_cell == cell) {
+                    break;
+                }
+            }
+        }
+
+        // For any remaining count do more stuff.
+        for (int i = count; i < path->Length; ++i) {
+            cell_t adj_cell = AdjacentCell[*face_ptr] + test_cell;
+            path->Score -= Passable_Cell(adj_cell, *face_ptr, -1, move);
+            path->Overlap[adj_cell / 32] &= ~(1 << (adj_cell % 32));
+            test_cell = adj_cell;
+            ++face_ptr;
+        }
+
+        path->Length = count;
+
+        return true;
+    }
+
+    return false;
 }
 
 BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, FacingType chirality, FacingType facing,
@@ -367,9 +429,131 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
     return 0;
 }
 
+/**
+ * Cleans the path of none optimal moves.
+ *
+ * 0x004C0130
+ */
 int FootClass::Optimize_Moves(PathType *path, MoveType move)
 {
-    return 0;
+    // This is Script_Unit_Pathfinder_Smoothen in OpenDUNE, looks like it does
+    // exactly the same thing but cell pass check doesn't use move types.
+    DEBUG_ASSERT(m_IsActive);
+    DEBUG_ASSERT(move != MOVE_NONE);
+    DEBUG_ASSERT(move < MOVE_COUNT);
+
+    static FacingType _trans[] = { FACING_NORTH,
+        FACING_NORTH,
+        FACING_NORTH_EAST,
+        FACING_EAST,
+        FACING_SOUTH_EAST,
+        FACING_FIXUP_MARK,
+        FACING_NONE,
+        FACING_NORTH };
+
+    if (path == NULL || path->Moves == NULL || path->Length == 0) {
+        return 0;
+    }
+
+    path->Moves[path->Length] = FACING_NONE;
+    cell_t cell = path->StartCell;
+
+    // If we have more than 1 move in our move queue, attempt to optimise
+    if (path->Length > 1) {
+        FacingType *next_move = &path->Moves[1];
+
+        while (*next_move != FACING_NONE) {
+            FacingType *last_move = next_move - 1;
+
+            // Adjust last_move back to the last valid move.
+            while (*last_move == FACING_FIXUP_MARK && last_move != path->Moves) {
+                --last_move;
+            }
+
+            if (*last_move == FACING_FIXUP_MARK) {
+                ++next_move;
+            } else {
+                FacingType facing_diff = Reverse_Adjust(*next_move, *last_move);
+
+                // Don't think this bit is possible given the math, original was
+                // probably % 8 rather than & 7 for the adjusts.
+                if (facing_diff < 0) {
+                    facing_diff = Facing_Adjust(facing_diff, FACING_COUNT);
+                }
+
+                FacingType trans_move = _trans[facing_diff];
+
+                if (trans_move == FACING_SOUTH_EAST) { // == 3
+                    *last_move = FACING_FIXUP_MARK;
+                    *next_move++ = FACING_FIXUP_MARK;
+                } else {
+                    FacingType tmp;
+
+                    if (trans_move != FACING_NORTH) { // != 0
+                        if ((*last_move & FACING_NORTH_EAST) != 0) { // == -1 or 1
+                            tmp = Facing_Adjust(*last_move, trans_move >= FACING_NORTH ? FACING_NORTH_EAST : FACING_NONE);
+
+                            // This should always be true given the possible
+                            // values.
+                            if (std::abs(trans_move) == 1) {
+                                int score = Passable_Cell(Cell_Get_Adjacent(cell, tmp), tmp, -1, move);
+
+                                if (score != 0) {
+                                    *next_move = tmp;
+                                    *last_move = tmp;
+                                }
+
+                                cell = Cell_Get_Adjacent(cell, *last_move);
+                                ++next_move;
+                                continue;
+                            }
+                        } else { // == 2
+                            tmp = Facing_Adjust(*last_move, trans_move);
+                        }
+
+                        *next_move = tmp;
+                        *last_move = FACING_FIXUP_MARK;
+
+                        // Adjust last_move back to the last valid move.
+                        while (*last_move == FACING_FIXUP_MARK && last_move != path->Moves) {
+                            --last_move;
+                        }
+
+                        if (*last_move == FACING_FIXUP_MARK) {
+                            cell = path->StartCell;
+                        } else {
+                            cell = Cell_Get_Adjacent(cell, Facing_Adjust(*last_move, FACING_SOUTH));
+                        }
+                    } else { // == 0
+                        cell = Cell_Get_Adjacent(cell, *last_move);
+                        ++next_move;
+                    }
+                }
+            }
+        }
+    }
+
+    path->Score = 0;
+    path->Length = 0;
+    FacingType *moves = path->Moves;
+    cell = path->StartCell;
+
+    // Build the optimised path.
+    for (FacingType *m = path->Moves; *m != FACING_NONE; ++m) {
+        if (*m == FACING_FIXUP_MARK) {
+            continue;
+        }
+
+        cell = Cell_Get_Adjacent(cell, *m);
+        path->Score += Passable_Cell(cell, *m, -1, move);
+        ++path->Length;
+        *moves++ = *m;
+    }
+
+    ++path->Length;
+    *moves = FACING_NONE;
+
+    return path->Length;
 }
 
 /**
@@ -431,7 +615,7 @@ int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveTyp
     MoveType canmove = Can_Enter_Cell(cell, facing);
 
     if (canmove < MOVE_MOVING_BLOCK) {
-        if (Distance(Center_Coord(), Cell_To_Coord(cell)) > 256) {
+        if (Distance_To(cell) > 256) {
             move = MOVE_MOVING_BLOCK;
         }
     }
