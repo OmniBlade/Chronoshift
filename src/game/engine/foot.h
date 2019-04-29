@@ -105,6 +105,8 @@ public:
     FacingType Get_Path_Facing(int index) const { return m_Paths[index]; }
     target_t Nav_Com() const { return m_NavCom; }
 
+    static int Point_Relative_To_Line(int px, int py, int sx, int sy, int ex, int ey);
+
 #ifndef CHRONOSHIFT_STANDALONE
     static void Hook_Me();
     BOOL Hook_Can_Demolish() { return FootClass::Can_Demolish(); }
@@ -181,10 +183,13 @@ inline void FootClass::Hook_Me()
     Hook_Function(0x004C3328, *FootClass::Hook_Can_Demolish);
     Hook_Function(0x004C154C, *FootClass::Hook_Sort_Y);
     // Hook_Function(0x004C1B6C, *FootClass::Unlimbo); Needs TechnoClass stuff.
+    Hook_Function(0x004BF49C, *FootClass::Unravel_Loop);
     Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
+    Hook_Function(0x004BF5E0, *FootClass::Follow_Edge);
     Hook_Function(0x004C0130, *FootClass::Optimize_Moves);
     Hook_Function(0x004C037C, *FootClass::Safety_Point);
     Hook_Function(0x004C0570, *FootClass::Passable_Cell);
+    Hook_Function(0x004BF470, *FootClass::Point_Relative_To_Line);
 #endif
 }
 #endif

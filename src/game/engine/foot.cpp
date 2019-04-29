@@ -23,6 +23,9 @@
 #include "team.h"
 #include <cstdlib>
 
+// Size in bits of each element of the path flags array.
+#define PATH_FLAG_BITSIZE 32
+
 static cell_t StartLocation;
 static cell_t DestLocation;
 static unsigned int MainOverlap[512]; // Is this perhaps some map size math?
@@ -353,9 +356,39 @@ BOOL FootClass::Basic_Path()
     return 0;
 }
 
+/**
+ * Attempts to remove loops from the path.
+ *
+ * 0x004BF49C
+ */
 BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, int x1, int y1, int x2, int y2, MoveType move)
 {
-    return 0;
+    BOOL even = false;
+    cell_t cellnum = cell + AdjacentCell[Opposite_Facing(facing)];
+    FacingType *facing_ptr = &path->Moves[path->Length - 1];
+    FacingType face = facing;
+
+    for (int i = path->Length; i > 0; --i) {
+        if (Point_Relative_To_Line(Cell_Get_X(cellnum), Cell_Get_Y(cellnum), x1, y1, x2, y2) == 0 || even) {
+            if ((face % 2) != 0 && cellnum != path->field_14) {
+                cell = cellnum;
+                facing = *(facing_ptr - 1); // field_A a pointer to facing types?
+                path->field_14 = cellnum;
+                path->Length = i;
+
+                return true;
+            }
+
+            even = even == false; // flip even bool
+        }
+
+        path->Score -= Passable_Cell(cellnum, *facing_ptr, -1, move);
+        path->Overlap[cellnum / PATH_FLAG_BITSIZE] &= ~(1 << (cellnum % PATH_FLAG_BITSIZE));
+        face = *facing_ptr--;
+        cellnum += AdjacentCell[Opposite_Facing(face)];
+    }
+
+    return false;
 }
 
 /**
@@ -367,10 +400,10 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
 {
     // Check the flagging for the passed in cell, if its not flagged, then add
     // facing to what appears to be the move list.
-    if ((path->Overlap[cell / 32] & (1 << (cell % 32))) == 0) {
+    if ((path->Overlap[cell / PATH_FLAG_BITSIZE] & (1 << (cell % PATH_FLAG_BITSIZE))) == 0) {
         path->Moves[path->Length++] = facing;
         path->Score += cost;
-        path->Overlap[cell / 32] |= 1 << (cell % 32);
+        path->Overlap[cell / PATH_FLAG_BITSIZE] |= 1 << (cell % PATH_FLAG_BITSIZE);
 
         return true;
     }
@@ -381,7 +414,7 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
     // vodoo
     if (Opposite_Facing(facing) == last_move) {
         cell_t cellnum = Cell_Get_Adjacent(cell, last_move); // AdjacentCell[last_move] + cell;
-        path->Overlap[cellnum / 32] &= ~(1 << (cellnum % 32));
+        path->Overlap[cellnum / PATH_FLAG_BITSIZE] &= ~(1 << (cellnum % PATH_FLAG_BITSIZE));
         --path->Length;
 
         return true;
@@ -410,7 +443,7 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
         for (int i = count; i < path->Length; ++i) {
             cell_t adj_cell = AdjacentCell[*face_ptr] + test_cell;
             path->Score -= Passable_Cell(adj_cell, *face_ptr, -1, move);
-            path->Overlap[adj_cell / 32] &= ~(1 << (adj_cell % 32));
+            path->Overlap[adj_cell / PATH_FLAG_BITSIZE] &= ~(1 << (adj_cell % PATH_FLAG_BITSIZE));
             test_cell = adj_cell;
             ++face_ptr;
         }
@@ -423,10 +456,152 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
     return false;
 }
 
+
+/**
+ * Calculates a path around an obstacle after "crashing" into it during path calc.
+ *
+ * 0x004BFDE4
+ */
 BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, FacingType chirality, FacingType facing,
     int threat, int threat_state, int length, MoveType move)
 {
-    return 0;
+    // OpenDUNE calls this function Script_Unit_Pathfinder_Connect. Again the
+    // C&C version is more complicated, checking the relative position of
+    // the cell being checked against a straight line to the target.
+
+    // If we don't have a path stuct to record the found path to, don't bother.
+    if (path == nullptr) {
+        return false;
+    }
+
+    int start_x = Cell_Get_X(start);
+    int start_y = Cell_Get_Y(start);
+    int dest_x = Cell_Get_X(destination);
+    int dest_y = Cell_Get_Y(destination);
+    int last_relative = 0;
+    int path_count = 0;
+    bool no_last_relative = true;
+    bool loop_finished = false;
+
+    path->PreviousCell = -1;
+    path->field_14 = -1;
+
+    FacingType edge_face = Facing_Adjust(facing, chirality);
+    FacingType last_face = FACING_NONE;
+
+    cell_t edge_cell = Cell_Get_Adjacent(start, edge_face);
+    cell_t curr_cell = start;
+    cell_t last_cell = -1;
+
+    // Keep adding cells to the path so long as we have space in our buffer.
+    while (path->Length < length) {
+        int cell_cost;
+        edge_face = facing;
+
+        do {
+            bool either_side_of_line = false;
+            edge_face = Facing_Adjust(edge_face, chirality);
+
+            // Handle Cardinal and Ordinal facings differently as ordinals are
+            // a diagonal move.
+            if ((edge_face & FACING_ORDINAL_TEST) != 0) {
+                cell_t next_adj = Cell_Get_Adjacent(curr_cell, Facing_Adjust(edge_face, chirality));
+
+                if (next_adj == destination) {
+                    cell_cost = Passable_Cell(next_adj, Facing_Adjust(edge_face, chirality), threat, move);
+
+                    if (cell_cost != 0) {
+                        edge_face = Facing_Adjust(edge_face, chirality);
+                        edge_cell = Cell_Get_Adjacent(curr_cell, edge_face);
+                        
+                        goto break_loop;
+                    }
+                }
+
+                cell_t chk_cell = Cell_Get_Adjacent(curr_cell, edge_face);
+
+                int relative =
+                    Point_Relative_To_Line(Cell_Get_X(chk_cell), Cell_Get_Y(chk_cell), start_x, start_y, dest_x, dest_y);
+
+                // In theory, Point_Relative_To_Line returns -ve for below and
+                // +ve for above the line, so the bool shows if the last two
+                // checked points are on opposite sides of the line.
+                if (relative != 0 && !no_last_relative) {
+                    either_side_of_line = (last_relative ^ relative) < 0;
+                } else {
+                    either_side_of_line = false;
+                }
+
+                if (either_side_of_line && Opposite_Facing(edge_face) == path->Moves[path->Length - 1]) {
+                    either_side_of_line = false;
+                }
+            }
+
+            // We are facing the way we started, so we didn't find a route.
+            if (edge_face == facing) {
+                return false;
+            }
+
+            edge_cell = Cell_Get_Adjacent(curr_cell, edge_face);
+
+            if (!either_side_of_line) {
+                cell_cost = Passable_Cell(edge_cell, edge_face, threat, move);
+
+                if (cell_cost != 0) {
+                    goto break_loop;
+                }
+            }
+
+        } while (edge_cell != destination);
+        loop_finished = true;
+
+break_loop:
+        if (!loop_finished) {
+            if (!Register_Cell(path, edge_cell, edge_face, cell_cost, move)) {
+                if (!Unravel_Loop(path, edge_cell, edge_face, start_x, start_y, dest_x, dest_y, move)) {
+                    return false;
+                }
+
+                edge_face = Facing_Adjust(edge_face, chirality * 2);
+            }
+
+            int tmp_rel =
+                Point_Relative_To_Line(Cell_Get_X(edge_cell), Cell_Get_Y(edge_cell), start_x, start_y, dest_x, dest_y);
+
+            if (tmp_rel != 0) {
+                last_relative = tmp_rel;
+                no_last_relative = false;
+            } else {
+                no_last_relative = true;
+            }
+
+            // If we can't get round the obstruction in 100 moves, give up?
+            if (++path_count == 100) {
+                return false;
+            }
+        }
+
+        // Success! We found a path around the obstacle.
+        if (edge_cell == destination) {
+            path->Moves[path->Length] = FACING_NONE;
+            return true;
+        }
+
+        // No progress, we failed.
+        if (edge_cell == last_cell && edge_face == last_face) {
+            return false;
+        }
+
+        if (last_cell == -1) {
+            last_cell = edge_cell;
+            last_face = edge_face;
+        }
+
+        facing = Facing_Adjust(edge_face, chirality * -3);
+        curr_cell = edge_cell;
+    }
+
+    return false;
 }
 
 /**
@@ -629,4 +804,14 @@ int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveTyp
     }
 
     return 0;
+}
+
+/**
+ * Helper function to determine how far off a line a point lies?
+ *
+ * 0x004BF470
+ */
+int FootClass::Point_Relative_To_Line(int px, int py, int sx, int sy, int ex, int ey)
+{
+    return (px - ex) * (sy - ey) - (sx - ex) * (py - ey);
 }
