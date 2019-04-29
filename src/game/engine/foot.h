@@ -185,7 +185,7 @@ inline void FootClass::Hook_Me()
     // Hook_Function(0x004C1B6C, *FootClass::Unlimbo); Needs TechnoClass stuff.
     Hook_Function(0x004BF49C, *FootClass::Unravel_Loop);
     Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
-    Hook_Function(0x004BF5E0, *FootClass::Follow_Edge);
+    Hook_Function(0x004BFDE4, *FootClass::Follow_Edge);
     Hook_Function(0x004C0130, *FootClass::Optimize_Moves);
     Hook_Function(0x004C037C, *FootClass::Safety_Point);
     Hook_Function(0x004C0570, *FootClass::Passable_Cell);
