@@ -166,9 +166,9 @@ protected:
     FootClass *m_field_114; // Next team member?
     FacingType m_Paths[12];
     MoveType m_field_124;
-    TCountDownTimerClass<FrameTimerClass> m_field_125; // path delay timer?
+    TCountDownTimerClass<FrameTimerClass> m_PathDelay; // path delay timer?
     uint32_t m_field_12E;
-    TCountDownTimerClass<FrameTimerClass> m_field_132;
+    TCountDownTimerClass<FrameTimerClass> m_BaseDefenseDelay;
     SpeedType m_TeamSpeed;
     MPHType m_TeamMaxSpeed;
     coord_t m_HeadTo;

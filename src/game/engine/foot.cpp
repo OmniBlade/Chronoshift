@@ -65,11 +65,11 @@ FootClass::FootClass(RTTIType type, int id, HousesType house) :
     m_field_113(TEAM_NUMBER_NONE),
     m_field_114(0),
     m_field_124((MoveType)1), // TODO: Confirm MoveTypes.
-    m_field_125(),
+    m_PathDelay(),
     m_field_12E(10),
-    m_field_132(),
+    m_BaseDefenseDelay(),
     m_TeamSpeed(SPEED_FOOT),
-    m_TeamMaxSpeed((MPHType)0),
+    m_TeamMaxSpeed(MPH_MIN),
     m_HeadTo(0)
 {
     memset(&m_NavList, 0, sizeof(m_NavList));
@@ -101,9 +101,9 @@ FootClass::FootClass(const FootClass &that) :
     m_field_113(that.m_field_113),
     m_field_114(that.m_field_114),
     m_field_124(that.m_field_124),
-    m_field_125(that.m_field_125),
+    m_PathDelay(that.m_PathDelay),
     m_field_12E(that.m_field_12E),
-    m_field_132(that.m_field_132),
+    m_BaseDefenseDelay(that.m_BaseDefenseDelay),
     m_TeamSpeed(that.m_TeamSpeed),
     m_TeamMaxSpeed(that.m_TeamMaxSpeed),
     m_HeadTo(that.m_HeadTo)
@@ -112,7 +112,7 @@ FootClass::FootClass(const FootClass &that) :
     memcpy(&m_Paths, that.m_Paths, sizeof(m_Paths));
 }
 
-FootClass::FootClass(const NoInitClass &noinit) : TechnoClass(noinit), m_field_125(noinit), m_field_132(noinit) {}
+FootClass::FootClass(const NoInitClass &noinit) : TechnoClass(noinit), m_PathDelay(noinit), m_BaseDefenseDelay(noinit) {}
 
 FootClass::~FootClass()
 {
@@ -623,7 +623,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
     // exactly the same thing but cell pass check doesn't use move types.
     DEBUG_ASSERT(m_IsActive);
     DEBUG_ASSERT(move != MOVE_NONE);
-    DEBUG_ASSERT(move < MOVE_COUNT);
+    DEBUG_ASSERT_PRINT(move < MOVE_COUNT, "move value is %d which exceed expected %d.\n", move, MOVE_COUNT);
 
     static FacingType _trans[] = { FACING_NORTH,
         FACING_NORTH,
