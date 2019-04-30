@@ -26,11 +26,19 @@
 // Size in bits of each element of the path flags array.
 #define PATH_FLAG_BITSIZE 32
 
+#ifndef CHRONOSHIFT_STANDALONE
+static cell_t &StartLocation = Make_Global<cell_t>(0x0065D7AE);
+static cell_t &DestLocation = Make_Global<cell_t>(0x0065D7AC);
+static unsigned *MainOverlap = Make_Pointer<unsigned>(0x0065BFAC);
+static unsigned *LeftOverlap = Make_Pointer<unsigned>(0x0065C7AC);
+static unsigned *RightOverlap = Make_Pointer<unsigned>(0x0065CFAC);
+#else
 static cell_t StartLocation;
 static cell_t DestLocation;
-static unsigned int MainOverlap[512]; // Is this perhaps some map size math?
-static unsigned int LeftOverlap[512]; // Is this perhaps some map size math?
-static unsigned int RightOverlap[512]; // Is this perhaps some map size math?
+static unsigned MainOverlap[512]; // Is this perhaps some map size math?
+static unsigned LeftOverlap[512]; // Is this perhaps some map size math?
+static unsigned RightOverlap[512]; // Is this perhaps some map size math?
+#endif
 
 FootClass::FootClass(RTTIType type, int id, HousesType house) :
     TechnoClass(type, id, house),
@@ -115,7 +123,7 @@ FootClass::~FootClass()
 
 MoveType FootClass::Can_Enter_Cell(cell_t cellnum, FacingType facing) const
 {
-    return MoveType();
+    return MOVE_OK;
 }
 
 void FootClass::AI()
