@@ -21,6 +21,7 @@
 #include "iomap.h"
 #include "session.h"
 #include "team.h"
+#include <algorithm>
 #include <cstdlib>
 
 // Size in bits of each element of the path flags array.
@@ -32,12 +33,14 @@ static cell_t &DestLocation = Make_Global<cell_t>(0x0065D7AC);
 static unsigned *MainOverlap = Make_Pointer<unsigned>(0x0065BFAC);
 static unsigned *LeftOverlap = Make_Pointer<unsigned>(0x0065C7AC);
 static unsigned *RightOverlap = Make_Pointer<unsigned>(0x0065CFAC);
+static int &PathCount = Make_Global<int>(0x006680EC);
 #else
 static cell_t StartLocation;
 static cell_t DestLocation;
 static unsigned MainOverlap[512]; // Is this perhaps some map size math?
 static unsigned LeftOverlap[512]; // Is this perhaps some map size math?
 static unsigned RightOverlap[512]; // Is this perhaps some map size math?
+static int PathCount;
 #endif
 
 FootClass::FootClass(RTTIType type, int id, HousesType house) :
@@ -354,9 +357,236 @@ void FootClass::Fixup_Path(PathType *path)
     // Empty
 }
 
-PathType *FootClass::Find_Path(cell_t dest, FacingType *facing, int length, MoveType move)
+/**
+ * Constructs a path if possible.
+ *
+ * 0x004BF77C
+ */
+PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, MoveType move)
 {
-    return nullptr;
+    // This is Script_Unit_Pathfinder in OpenDUNE which returns the struct as
+    // an object instead of using a static instance. Might be useful to study
+    // for rewriting this without the gotos.
+    static PathType _path;
+
+    // If the buffer pointer is nullptr, we can't proceed so return nullptr.
+    if (buffer == nullptr) {
+        return nullptr;
+    }
+
+    int threat;
+    int risk;
+    int threat_state = 0;
+    ++PathCount;
+
+    // Are we part of a team and should that team avoid threats?
+    if (!m_Team.Is_Valid() || !m_Team->Should_Avoid_Threats()) {
+        threat = -1;
+        risk = -1;
+    } else {
+        if (!m_Team.Is_Valid()) {
+            risk = Risk();
+        } else {
+            risk = m_Team->Field35();
+        }
+
+        threat = 0;
+    }
+
+    // Set up initial state of the path
+    cell_t current_cell = Coord_To_Cell(Get_Coord());
+
+    _path.StartCell = StartLocation = current_cell;
+    _path.Score = 0;
+    _path.Length = 0;
+    _path.Moves = buffer;
+    _path.Overlap = MainOverlap;
+    _path.PreviousCell = -1;
+    _path.UnravelCheckpoint = -1;
+    _path.Moves[0] = FACING_NONE;
+    --length;
+    DestLocation = dest;
+#ifndef CHRONOSHIFT_STANDALONE
+    memset(MainOverlap, 0, 512 * sizeof(unsigned));
+#else
+    memset(MainOverlap, 0, sizeof(MainOverlap));
+#endif
+    _path.Overlap[(uint16_t)current_cell / 32] |= 1 << ((uint16_t)current_cell % 32);
+
+    while (_path.Length < length) {
+        if (current_cell == dest) {
+            break;
+        }
+
+        FacingType direction = Direction_To_Facing(Cell_Direction8(current_cell, dest));
+        cell_t adj_cell = Cell_Get_Adjacent(current_cell, direction);
+        int cell_score = Passable_Cell(adj_cell, direction, threat, move);
+
+        if (cell_score) { // Great, we have a direct move, do the next round.
+            Register_Cell(&_path, adj_cell, direction, cell_score, move);
+            current_cell = adj_cell;
+        } else { // Oops, we bumped into something, find a way around.
+            FacingType right_moves[304];
+            PathType right_path;
+            int right_score = 0;
+            FacingType left_moves[304];
+            PathType left_path;
+            int left_score = 0;
+            PathType *chosen_path = nullptr;
+
+            if (adj_cell == dest) { // Close enough.
+                break;
+            }
+
+            int i = 0;
+
+            while (i < 5) {
+                FacingType next_dir = Direction_To_Facing(Cell_Direction8(adj_cell, dest));
+                adj_cell = Cell_Get_Adjacent(adj_cell, next_dir);
+
+                // If we still don't have passable, see if we are close.
+                if (Passable_Cell(adj_cell, FACING_NONE, threat, move) == 0) {
+                    // If we are close, adjust the threat and try again.
+                    if (adj_cell == dest) {
+                        if (threat == -1) {
+                            // Set current a break to finish pathfinding.
+                            current_cell = adj_cell;
+
+                            break;
+                        }
+
+                        switch (threat_state++) {
+                            case 0:
+                                threat = risk / 2;
+                                break;
+                            case 1:
+                                threat += risk;
+                                break;
+                            case 2:
+                                threat = -1;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        break;
+                    }
+                }
+
+                memcpy(&left_path, &_path, sizeof(left_path));
+                left_path.Moves = left_moves;
+                left_path.Overlap = LeftOverlap;
+                memcpy(left_moves, _path.Moves, _path.Length);
+                memcpy(_path.Overlap, left_path.Overlap, sizeof(LeftOverlap));
+
+                left_score = Follow_Edge(current_cell,
+                    adj_cell,
+                    &left_path,
+                    FACING_EDGE_LEFT,
+                    direction,
+                    threat,
+                    threat_state,
+                    sizeof(left_moves) - 2,
+                    move);
+
+                memcpy(&right_path, &_path, sizeof(right_path));
+                right_path.Moves = right_moves;
+                right_path.Overlap = RightOverlap;
+                memcpy(right_moves, _path.Moves, _path.Length);
+                memcpy(right_path.Overlap, _path.Overlap, sizeof(RightOverlap));
+
+                right_score = Follow_Edge(current_cell,
+                    adj_cell,
+                    &right_path,
+                    FACING_EDGE_RIGHT,
+                    direction,
+                    threat,
+                    threat_state,
+                    sizeof(right_moves) - 2,
+                    move);
+
+                if (left_score != 0 || right_score != 0) {
+                    break;
+                }
+
+                while (true) {
+                    if (adj_cell == dest) {
+                        break;
+                    }
+
+                    next_dir = Direction_To_Facing(Cell_Direction8(adj_cell, dest));
+                    adj_cell = Cell_Get_Adjacent(adj_cell, next_dir);
+
+                    if (Passable_Cell(adj_cell, FACING_NONE, threat, move) == 0) {
+                        ++i;
+
+                        break;
+                    }
+
+                    if (adj_cell == dest) {
+                        if (threat == -1) {
+                            // Set current a break to finish pathfinding.
+                            current_cell = adj_cell;
+
+                            break;
+                        }
+
+                        switch (threat_state++) {
+                            case 0:
+                                threat = risk >> 1;
+                                break;
+                            case 1:
+                                threat += risk;
+                                break;
+                            case 2:
+                                threat = -1;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            if (left_score != 0 || right_score != 0) {
+                chosen_path = &left_path;
+
+                if (right_score == 0) {
+                    chosen_path = &left_path;
+                } else if (left_score != 0) {
+                    chosen_path = &right_path;
+
+                } else {
+                    chosen_path = left_path.Length >= right_path.Length ? &right_path : &left_path;
+                }
+
+                int move_count = std::min(chosen_path->Length, length);
+
+                if (move_count > 0) {
+                    memcpy(_path.Overlap, chosen_path->Overlap, sizeof(MainOverlap));
+                    memcpy(_path.Moves, chosen_path->Moves, move_count);
+                    _path.Length = move_count;
+                    _path.Score = chosen_path->Score;
+                    _path.PreviousCell = -1;
+                    _path.UnravelCheckpoint = -1;
+
+                    current_cell = adj_cell;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    if (_path.Length < length) {
+        _path.Moves[_path.Length++] = FACING_NONE;
+    }
+
+    Optimize_Moves(&_path, move);
+
+    return &_path;
 }
 
 BOOL FootClass::Basic_Path()
@@ -378,10 +608,10 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
 
     for (int i = path->Length; i > 0; --i) {
         if (Point_Relative_To_Line(Cell_Get_X(cellnum), Cell_Get_Y(cellnum), x1, y1, x2, y2) == 0 || even) {
-            if ((face % 2) != 0 && cellnum != path->field_14) {
+            if ((face % 2) != 0 && cellnum != path->UnravelCheckpoint) {
                 cell = cellnum;
                 facing = *(facing_ptr - 1); // field_A a pointer to facing types?
-                path->field_14 = cellnum;
+                path->UnravelCheckpoint = cellnum;
                 path->Length = i;
 
                 return true;
@@ -464,7 +694,6 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
     return false;
 }
 
-
 /**
  * Calculates a path around an obstacle after "crashing" into it during path calc.
  *
@@ -492,7 +721,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
     bool loop_finished = false;
 
     path->PreviousCell = -1;
-    path->field_14 = -1;
+    path->UnravelCheckpoint = -1;
 
     FacingType edge_face = Facing_Adjust(facing, chirality);
     FacingType last_face = FACING_NONE;
@@ -521,7 +750,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
                     if (cell_cost != 0) {
                         edge_face = Facing_Adjust(edge_face, chirality);
                         edge_cell = Cell_Get_Adjacent(curr_cell, edge_face);
-                        
+
                         goto break_loop;
                     }
                 }
@@ -563,7 +792,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
         } while (edge_cell != destination);
         loop_finished = true;
 
-break_loop:
+    break_loop:
         if (!loop_finished) {
             if (!Register_Cell(path, edge_cell, edge_face, cell_cost, move)) {
                 if (!Unravel_Loop(path, edge_cell, edge_face, start_x, start_y, dest_x, dest_y, move)) {
@@ -623,7 +852,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
     // exactly the same thing but cell pass check doesn't use move types.
     DEBUG_ASSERT(m_IsActive);
     DEBUG_ASSERT(move != MOVE_NONE);
-    DEBUG_ASSERT_PRINT(move < MOVE_COUNT, "move value is %d which exceed expected %d.\n", move, MOVE_COUNT);
+    // DEBUG_ASSERT_PRINT(move < MOVE_COUNT, "move value is %d which exceed expected %d.\n", move, MOVE_COUNT);
 
     static FacingType _trans[] = { FACING_NORTH,
         FACING_NORTH,

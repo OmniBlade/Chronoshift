@@ -32,7 +32,7 @@ struct PathType
     FacingType *Moves; // Array of directions, moves to make each cell.
     uint32_t *Overlap; // Flags of which cells have been checked?
     cell_t PreviousCell; // Possible name, not 100%
-    cell_t field_14;
+    cell_t UnravelCheckpoint;
 };
 
 class FootClass : public TechnoClass
@@ -161,7 +161,7 @@ protected:
     target_t m_NavCom;
     target_t m_SuspendedNavCom;
     target_t m_NavList[10];
-    TeamClass *m_Team;
+    GamePtr<TeamClass> m_Team;
     TeamNumberType m_field_113;
     FootClass *m_field_114; // Next team member?
     FacingType m_Paths[12];
@@ -183,6 +183,7 @@ inline void FootClass::Hook_Me()
     Hook_Function(0x004C3328, *FootClass::Hook_Can_Demolish);
     Hook_Function(0x004C154C, *FootClass::Hook_Sort_Y);
     // Hook_Function(0x004C1B6C, *FootClass::Unlimbo); Needs TechnoClass stuff.
+    Hook_Function(0x004BF77C, *FootClass::Find_Path);
     Hook_Function(0x004BF49C, *FootClass::Unravel_Loop);
     Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
     Hook_Function(0x004BFDE4, *FootClass::Follow_Edge);
