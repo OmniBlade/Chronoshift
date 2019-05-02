@@ -422,7 +422,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
         cell_t adj_cell = Cell_Get_Adjacent(current_cell, direction);
         int cell_score = Passable_Cell(adj_cell, direction, threat, move);
 
-        if (cell_score) { // Great, we have a direct move, do the next round.
+        if (cell_score != 0) { // Great, we have a direct move, do the next round.
             Register_Cell(&_path, adj_cell, direction, cell_score, move);
             current_cell = adj_cell;
         } else { // Oops, we bumped into something, find a way around.
@@ -470,6 +470,8 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                         }
 
                         break;
+                    } else {
+                        continue;
                     }
                 }
 
@@ -509,11 +511,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                     break;
                 }
 
-                while (true) {
-                    if (adj_cell == dest) {
-                        break;
-                    }
-
+                while (adj_cell != dest) {
                     next_dir = Direction_To_Facing(Cell_Direction8(adj_cell, dest));
                     adj_cell = Cell_Get_Adjacent(adj_cell, next_dir);
 
@@ -812,8 +810,8 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
                 no_last_relative = true;
             }
 
-            // If we can't get round the obstruction in 100 moves, give up?
-            if (++path_count == 100) {
+            // If we can't get round the obstruction in 400 moves, give up?
+            if (++path_count == 400) {
                 return false;
             }
         }
