@@ -599,6 +599,10 @@ BOOL FootClass::Basic_Path()
  */
 BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, int x1, int y1, int x2, int y2, MoveType move)
 {
+#ifndef CHRONOSHIFT_STANDALONE
+    BOOL (*func)(FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType) = reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType)>(0x004BF49C);
+    return func(this, path, cell, facing, x1, y1, x2, y2, move);
+#else
     BOOL even = false;
     cell_t cellnum = cell + AdjacentCell[Opposite_Facing(facing)];
     FacingType *facing_ptr = &path->Moves[path->Length - 1];
@@ -625,6 +629,7 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
     }
 
     return false;
+#endif
 }
 
 /**
@@ -634,6 +639,10 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
  */
 BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, int cost, MoveType move)
 {
+#ifndef CHRONOSHIFT_STANDALONE
+    BOOL (*func)(FootClass *, PathType *, cell_t, FacingType, int, MoveType) = reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t, FacingType, int, MoveType)>(0x004BF5E0);
+    return func(this, path, cell, facing, cost, move);
+#else
     // Check the flagging for the passed in cell, if its not flagged, then add
     // facing to what appears to be the move list.
     if ((path->Overlap[cell / PATH_FLAG_BITSIZE] & (1 << (cell % PATH_FLAG_BITSIZE))) == 0) {
@@ -690,6 +699,7 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
     }
 
     return false;
+#endif
 }
 
 /**
@@ -700,6 +710,10 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
 BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, FacingType chirality, FacingType facing,
     int threat, int threat_state, int length, MoveType move)
 {
+#ifndef CHRONOSHIFT_STANDALONE
+    BOOL (*func)(FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType) = reinterpret_cast<BOOL (*)(FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType)>(0x004BFDE4);
+    return func(this, start, destination, path, chirality, facing, threat, threat_state, length, move);
+#else
     // OpenDUNE calls this function Script_Unit_Pathfinder_Connect. Again the
     // C&C version is more complicated, checking the relative position of
     // the cell being checked against a straight line to the target.
@@ -837,6 +851,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
     }
 
     return false;
+#endif
 }
 
 /**
@@ -846,6 +861,10 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
  */
 int FootClass::Optimize_Moves(PathType *path, MoveType move)
 {
+#ifndef CHRONOSHIFT_STANDALONE
+    BOOL (*func)(FootClass *, PathType *, MoveType) = reinterpret_cast<BOOL (*)(FootClass *, PathType *, MoveType)>(0x004C0130);
+    return func(this, path, move);
+#else
     // This is Script_Unit_Pathfinder_Smoothen in OpenDUNE, looks like it does
     // exactly the same thing but cell pass check doesn't use move types.
     DEBUG_ASSERT(m_IsActive);
@@ -964,6 +983,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
     *moves = FACING_NONE;
 
     return path->Length;
+#endif
 }
 
 /**
@@ -973,6 +993,10 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
  */
 cell_t FootClass::Safety_Point(cell_t start_cell, cell_t end_cell, int start, int end)
 {
+#ifndef CHRONOSHIFT_STANDALONE
+    cell_t (*func)(FootClass *, cell_t, cell_t, int, int) = reinterpret_cast<cell_t (*)(FootClass *, cell_t, cell_t, int, int)>(0x004C037C);
+    return func(this, start_cell, end_cell, start, end);
+#else
     FacingType adj_facing = SS_41B710(Opposite_Facing(Direction_To_Facing(Cell_Direction8(start_cell, end_cell))), 1);
 
     for (int i = start; i < end; ++i) {
@@ -1011,6 +1035,7 @@ cell_t FootClass::Safety_Point(cell_t start_cell, cell_t end_cell, int start, in
     }
 
     return -1;
+#endif
 }
 
 /**
@@ -1020,6 +1045,10 @@ cell_t FootClass::Safety_Point(cell_t start_cell, cell_t end_cell, int start, in
  */
 int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveType move)
 {
+#ifndef CHRONOSHIFT_STANDALONE
+    int (*func)(FootClass *, cell_t, FacingType, int, MoveType) = reinterpret_cast<int (*)(FootClass *, cell_t, FacingType, int, MoveType)>(0x004C0570);
+    return func(this, cell, facing, threat, move);
+#else
     static int const _value[MOVE_COUNT] = { 1, 1, 3, 8, 10, 0 };
 
     MoveType canmove = Can_Enter_Cell(cell, facing);
@@ -1039,6 +1068,7 @@ int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveTyp
     }
 
     return 0;
+#endif
 }
 
 /**
@@ -1049,4 +1079,58 @@ int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveTyp
 int FootClass::Point_Relative_To_Line(int px, int py, int sx, int sy, int ex, int ey)
 {
     return (px - ex) * (sy - ey) - (sx - ex) * (py - ey);
+}
+
+PathType *FootClass::Find_Path_Wrapper(cell_t dest, FacingType *buffer, int length, MoveType move)
+{
+    DEBUG_LOG("Find_Path_Wrapper entered\n");
+    PathType * real;
+    PathType * test;
+    FacingType *buffer2 = new FacingType[length];
+
+    //call our implamentation
+    test = Find_Path(dest, buffer2, length, move);
+
+    //call the original Find_Path
+    PathType * (*func)(FootClass *, cell_t, FacingType*, int, MoveType) = reinterpret_cast<PathType * (*)(FootClass *, cell_t, FacingType*, int, MoveType)>(0x004BF77C);
+    real = func(this, dest, buffer, length, move);
+
+    bool fail = false; 
+    if (real->StartCell != test->StartCell) {
+        DEBUG_LOG("Find_Path_Wrapper StartCells don't match real %x test %x\n", real->StartCell, test->StartCell);
+        fail = true;
+    }
+    if (real->Score != test->Score) {
+        DEBUG_LOG("Find_Path_Wrapper Scores don't match real %d test %d\n", real->Score, test->Score);
+        fail = true;
+    }
+    if (real->Length != test->Length) {
+        DEBUG_LOG("Find_Path_Wrapper Lengths don't match real %d test %d\n", real->Length, test->Length);
+        fail = true;
+    }
+    if (real->PreviousCell != test->PreviousCell) {
+        DEBUG_LOG("Find_Path_Wrapper PreviousCells don't match real %x test %x\n", real->PreviousCell, test->PreviousCell);
+        fail = true;
+    }
+    if (real->UnravelCheckpoint != test->UnravelCheckpoint) {
+        DEBUG_LOG("Find_Path_Wrapper UnravelCheckpoints don't match real %x test %x\n", real->UnravelCheckpoint, test->UnravelCheckpoint);
+        fail = true;
+    }
+
+    //if all previous tests went fine check the moves and overlap for missmatches
+    if (fail == false) {
+        int num1 = memcmp(real->Moves, test->Moves, test->Length);
+        if (num1 != 0) {
+            DEBUG_LOG("Find_Path_Wrapper Moves don't match\n");
+        }
+        int num2 = memcmp(real->Overlap, test->Overlap, 2048);
+        if (num2 != 0) {
+            DEBUG_LOG("Find_Path_Wrapper Overlaps don't match\n");
+        }
+    }
+
+    //clear test's buffer
+    delete[] buffer2;
+    DEBUG_LOG("Find_Path_Wrapper exit\n");
+    return real; 
 }

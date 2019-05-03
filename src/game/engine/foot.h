@@ -106,6 +106,7 @@ public:
     target_t Nav_Com() const { return m_NavCom; }
 
     static int Point_Relative_To_Line(int px, int py, int sx, int sy, int ex, int ey);
+    PathType *Find_Path_Wrapper(cell_t dest, FacingType *buffer, int length, MoveType move);
 
 #ifndef CHRONOSHIFT_STANDALONE
     static void Hook_Me();
@@ -183,14 +184,15 @@ inline void FootClass::Hook_Me()
     Hook_Function(0x004C3328, *FootClass::Hook_Can_Demolish);
     Hook_Function(0x004C154C, *FootClass::Hook_Sort_Y);
     // Hook_Function(0x004C1B6C, *FootClass::Unlimbo); Needs TechnoClass stuff.
-    Hook_Function(0x004BF77C, *FootClass::Find_Path);
-    Hook_Function(0x004BF49C, *FootClass::Unravel_Loop);
-    Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
-    Hook_Function(0x004BFDE4, *FootClass::Follow_Edge);
-    Hook_Function(0x004C0130, *FootClass::Optimize_Moves);
-    Hook_Function(0x004C037C, *FootClass::Safety_Point);
-    Hook_Function(0x004C0570, *FootClass::Passable_Cell);
-    Hook_Function(0x004BF470, *FootClass::Point_Relative_To_Line);
+    //Hook_Function(0x004BF77C, *FootClass::Find_Path);
+    //Hook_Function(0x004BF49C, *FootClass::Unravel_Loop);
+    //Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
+    //Hook_Function(0x004BFDE4, *FootClass::Follow_Edge);
+    //Hook_Function(0x004C0130, *FootClass::Optimize_Moves);
+    //Hook_Function(0x004C037C, *FootClass::Safety_Point);
+    //Hook_Function(0x004C0570, *FootClass::Passable_Cell);
+    //Hook_Function(0x004BF470, *FootClass::Point_Relative_To_Line);
+    Hook_Call(0x004C0CDE, *FootClass::Find_Path_Wrapper);//replaces Find_Path call in Basic_Path
 #endif
 }
 #endif
