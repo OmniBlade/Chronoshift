@@ -30,18 +30,15 @@
 #ifndef CHRONOSHIFT_STANDALONE
 static cell_t &StartLocation = Make_Global<cell_t>(0x0065D7AE);
 static cell_t &DestLocation = Make_Global<cell_t>(0x0065D7AC);
-static unsigned *MainOverlap = Make_Pointer<unsigned>(0x0065BFAC);
-static unsigned *LeftOverlap = Make_Pointer<unsigned>(0x0065C7AC);
-static unsigned *RightOverlap = Make_Pointer<unsigned>(0x0065CFAC);
-static int &PathCount = Make_Global<int>(0x006680EC);
 #else
 static cell_t StartLocation;
 static cell_t DestLocation;
+#endif
+
 static unsigned MainOverlap[512]; // Is this perhaps some map size math?
 static unsigned LeftOverlap[512]; // Is this perhaps some map size math?
 static unsigned RightOverlap[512]; // Is this perhaps some map size math?
 static int PathCount;
-#endif
 
 FootClass::FootClass(RTTIType type, int id, HousesType house) :
     TechnoClass(type, id, house),
@@ -409,11 +406,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
     _path.Moves[0] = FACING_NONE;
     --length;
     DestLocation = dest;
-#ifndef CHRONOSHIFT_STANDALONE
-    memset(MainOverlap, 0, 512 * sizeof(unsigned));
-#else
     memset(MainOverlap, 0, sizeof(MainOverlap));
-#endif
     _path.Overlap[(uint16_t)current_cell / 32] |= 1 << ((uint16_t)current_cell % 32);
 
     while (_path.Length < length) {
@@ -485,11 +478,8 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                 left_path.Moves = left_moves;
                 left_path.Overlap = LeftOverlap;
                 memcpy(left_moves, _path.Moves, _path.Length);
-#ifndef CHRONOSHIFT_STANDALONE
-                memcpy(left_path.Overlap, _path.Overlap, 512 * sizeof(unsigned));
-#else
                 memcpy(left_path.Overlap, _path.Overlap, sizeof(LeftOverlap));
-#endif
+
                 left_score = Follow_Edge(current_cell,
                     adj_cell,
                     &left_path,
@@ -504,11 +494,8 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                 right_path.Moves = right_moves;
                 right_path.Overlap = RightOverlap;
                 memcpy(right_moves, _path.Moves, _path.Length);
-#ifndef CHRONOSHIFT_STANDALONE
-                memcpy(right_path.Overlap, _path.Overlap, 512 * sizeof(unsigned));
-#else
                 memcpy(right_path.Overlap, _path.Overlap, sizeof(RightOverlap));
-#endif
+
                 right_score = Follow_Edge(current_cell,
                     adj_cell,
                     &right_path,
@@ -530,36 +517,34 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                     adj_cell = Cell_Get_Adjacent(adj_cell, next_dir);
 
                     if (Passable_Cell(adj_cell, next_dir, threat, move) == 0) {
-                        DEBUG_LOG("Adjacent cell not passable, incrementing exit checker.\n");
+                        DEBUG_LOG("  Adjacent cell not passable, incrementing exit checker.\n");
                         ++i;
 
                         break;
                     }
+                }
 
-                    if (adj_cell == dest) {
-                        if (threat == -1) {
-                            // Set current a break to finish pathfinding.
-                            current_cell = adj_cell;
-
-                            break;
-                        }
-
-                        DEBUG_LOG("  Adjusting threat for final cell check.\n");
-                        switch (threat_state++) {
-                            case 0:
-                                threat = risk >> 1;
-                                break;
-                            case 1:
-                                threat += risk;
-                                break;
-                            case 2:
-                                threat = -1;
-                                break;
-                            default:
-                                break;
-                        }
+                if (i < 5) {
+                    if (threat == -1) {
+                        // Set current a break to finish pathfinding.
+                        current_cell = adj_cell;
 
                         break;
+                    }
+
+                    DEBUG_LOG("  Adjusting threat for final cell check.\n");
+                    switch (threat_state++) {
+                        case 0:
+                            threat = risk >> 1;
+                            break;
+                        case 1:
+                            threat += risk;
+                            break;
+                        case 2:
+                            threat = -1;
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -599,8 +584,6 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                 } else {
                     break;
                 }
-            } else {
-                break;
             }
         }
     }
