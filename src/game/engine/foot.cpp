@@ -524,29 +524,35 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                     }
                 }
 
-                if (i < 5) {
-                    if (threat == -1) {
-                        // Set current a break to finish pathfinding.
-                        current_cell = adj_cell;
-
-                        break;
-                    }
-
-                    DEBUG_LOG("  Adjusting threat for final cell check.\n");
-                    switch (threat_state++) {
-                        case 0:
-                            threat = risk >> 1;
-                            break;
-                        case 1:
-                            threat += risk;
-                            break;
-                        case 2:
-                            threat = -1;
-                            break;
-                        default:
-                            break;
-                    }
+                if (adj_cell != dest) {
+                    continue;
                 }
+
+                if (threat == -1) {
+                    DEBUG_LOG("  Find_Path bailing as failed Follow_Edge and adj_cell == dest.\n");
+                
+                    // Set current a break to finish pathfinding.
+                    current_cell = adj_cell;
+
+                    break;
+                }
+
+                DEBUG_LOG("  Adjusting threat for final cell check.\n");
+                switch (threat_state++) {
+                    case 0:
+                        threat = risk >> 1;
+                        break;
+                    case 1:
+                        threat += risk;
+                        break;
+                    case 2:
+                        threat = -1;
+                        break;
+                    default:
+                        break;
+                }
+
+                break;
             }
 
             if (left_score != 0 || right_score != 0) {
@@ -569,11 +575,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
 
                 if (move_count > 0) {
                     DEBUG_LOG("  Find_Path is copying .\n");
-#ifndef CHRONOSHIFT_STANDALONE
-                    memcpy(_path.Overlap, chosen_path->Overlap, 512 * sizeof(unsigned));
-#else
                     memcpy(_path.Overlap, chosen_path->Overlap, sizeof(MainOverlap));
-#endif
                     memcpy(_path.Moves, chosen_path->Moves, move_count);
                     _path.Length = move_count;
                     _path.Score = chosen_path->Score;
@@ -582,6 +584,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
 
                     current_cell = adj_cell;
                 } else {
+                    DEBUG_LOG("  Find_Path bailing, mount cound 0 after successful follow edge.\n");
                     break;
                 }
             }
@@ -611,7 +614,7 @@ BOOL FootClass::Basic_Path()
 BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, int x1, int y1, int x2, int y2, MoveType move)
 {
 #ifndef CHRONOSHIFT_STANDALONE
-    BOOL (*func)
+    BOOL(*func)
     (FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType) =
         reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType)>(
             0x004BF49C);
@@ -654,7 +657,7 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
 BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, int cost, MoveType move)
 {
 #ifndef CHRONOSHIFT_STANDALONE
-    BOOL (*func)
+    BOOL(*func)
     (FootClass *, PathType *, cell_t, FacingType, int, MoveType) =
         reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t, FacingType, int, MoveType)>(0x004BF5E0);
     return func(this, path, cell, facing, cost, move);
@@ -727,7 +730,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
     int threat, int threat_state, int length, MoveType move)
 {
 #ifndef CHRONOSHIFT_STANDALONE
-    BOOL (*func)
+    BOOL(*func)
     (FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType) =
         reinterpret_cast<BOOL (*)(FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType)>(
             0x004BFDE4);
@@ -881,7 +884,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
 int FootClass::Optimize_Moves(PathType *path, MoveType move)
 {
 #ifndef CHRONOSHIFT_STANDALONE
-    BOOL (*func)
+    BOOL(*func)
     (FootClass *, PathType *, MoveType) = reinterpret_cast<BOOL (*)(FootClass *, PathType *, MoveType)>(0x004C0130);
     return func(this, path, move);
 #else
