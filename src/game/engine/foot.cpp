@@ -893,7 +893,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
     DEBUG_ASSERT(m_IsActive);
     DEBUG_ASSERT(move != MOVE_NONE);
     // DEBUG_ASSERT_PRINT(move < MOVE_COUNT, "move value is %d which exceed expected %d.\n", move, MOVE_COUNT);
-
+                
     static FacingType _trans[] = { FACING_NORTH,
         FACING_NORTH,
         FACING_NORTH_EAST,
@@ -909,10 +909,10 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
 
     path->Moves[path->Length] = FACING_NONE;
 
-    if (path->Length) {
+    if (path->Length == 0) {
         return 0;
     }
-    
+
     cell_t cell = path->StartCell;
 
     // If we have more than 1 move in our move queue, attempt to optimise
@@ -929,61 +929,63 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
 
             if (*last_move == FACING_FIXUP_MARK) {
                 ++next_move;
-            } else {
-                FacingType facing_diff = Reverse_Adjust(*next_move, *last_move);
+                continue;
+            }
 
-                // Don't think this bit is possible given the math, original was
-                // probably % 8 rather than & 7 for the adjusts.
-                if ((int8_t)facing_diff < 0) {
-                    facing_diff = Facing_Adjust(facing_diff, FACING_COUNT);
-                }
+            FacingType facing_diff = Reverse_Adjust(*next_move, *last_move);
 
-                FacingType trans_move = _trans[facing_diff];
+            // Don't think this bit is possible given the math, original was
+            // probably % 8 rather than & 7 for the adjusts.
+            if ((int8_t)facing_diff < 0) {
+                facing_diff = Facing_Adjust(facing_diff, FACING_COUNT);
+            }
 
-                if (trans_move == FACING_SOUTH_EAST) { // == 3
-                    *last_move = FACING_FIXUP_MARK;
-                    *next_move++ = FACING_FIXUP_MARK;
-                } else {
-                    FacingType tmp;
+            FacingType trans_move = _trans[facing_diff];
 
-                    if (trans_move != FACING_NORTH) { // != 0
-                        if ((*last_move & FACING_ORDINAL_TEST) != 0) { // == -1 or 1
-                            tmp = Facing_Adjust(*last_move, (int8_t)trans_move >= FACING_NORTH ? FACING_NORTH_EAST : FACING_NONE);
+            // Opposite directions so we can remove them.
+            if (trans_move == FACING_SOUTH_EAST) {
+                *last_move = FACING_FIXUP_MARK;
+                *next_move++ = FACING_FIXUP_MARK;
+                continue;
+            }
 
-                            // This should always be true given the possible
-                            // values.
-                            if (std::abs((int8_t)trans_move) == 1) {
-                                if (Passable_Cell(Cell_Get_Adjacent(cell, tmp), tmp, -1, move) != 0) {
-                                    *next_move = tmp;
-                                    *last_move = tmp;
-                                }
+            if (trans_move == FACING_NORTH) {
+                cell = Cell_Get_Adjacent(cell, *last_move);
+                ++next_move;
+                continue;
+            }
 
-                                cell = Cell_Get_Adjacent(cell, *last_move);
-                                ++next_move;
-                                continue;
-                            }
-                        } else { // == 2
-                            tmp = Facing_Adjust(*last_move, trans_move);
-                        }
+            FacingType dir;
 
-                        *next_move = tmp;
-                        *last_move = FACING_FIXUP_MARK;
+            if ((*last_move & FACING_ORDINAL_TEST) != 0) { // == -1 or 1
+                dir = Facing_Adjust(*last_move, (int8_t)trans_move >= FACING_NORTH ? FACING_NORTH_EAST : FACING_NONE);
 
-                        // Adjust last_move back to the last valid move.
-                        while (*last_move == FACING_FIXUP_MARK && last_move != path->Moves) {
-                            --last_move;
-                        }
-
-                        if (*last_move == FACING_FIXUP_MARK) {
-                            cell = path->StartCell;
-                        } else {
-                            cell = Cell_Get_Adjacent(cell, Facing_Adjust(*last_move, FACING_SOUTH));
-                        }
-                    } else { // == 0
-                        cell = Cell_Get_Adjacent(cell, *last_move);
-                        ++next_move;
+                if (std::abs((int8_t)trans_move) == 1) {
+                    if (Passable_Cell(Cell_Get_Adjacent(cell, dir), dir, -1, move) != 0) {
+                        *next_move = dir;
+                        *last_move = dir;
                     }
+
+                    cell = Cell_Get_Adjacent(cell, *last_move);
+                    ++next_move;
+                    continue;
                 }
+            } else { // == 2
+                dir = Facing_Adjust(*last_move, trans_move);
+            }
+
+            *next_move = dir;
+            *last_move = FACING_FIXUP_MARK;
+
+            // Adjust last_move back to the last valid move.
+            while (*last_move == FACING_FIXUP_MARK && last_move != path->Moves) {
+                --last_move;
+            }
+
+            if (*last_move == FACING_FIXUP_MARK) {
+                cell = path->StartCell;
+            } else {
+                cell = Cell_Get_Adjacent(cell, Facing_Adjust(*last_move, FACING_SOUTH));
             }
         }
     }
@@ -1007,7 +1009,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
 
     ++path->Length;
     *moves = FACING_NONE;
-
+                
     return path->Length;
 #endif
 }
