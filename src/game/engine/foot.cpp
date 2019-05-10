@@ -530,7 +530,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
 
                 if (threat == -1) {
                     DEBUG_LOG("  Find_Path bailing as failed Follow_Edge and adj_cell == dest.\n");
-                
+
                     // Set current a break to finish pathfinding.
                     current_cell = adj_cell;
 
@@ -883,7 +883,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
  */
 int FootClass::Optimize_Moves(PathType *path, MoveType move)
 {
-#ifndef CHRONOSHIFT_STANDALONE
+#if 0
     BOOL(*func)
     (FootClass *, PathType *, MoveType) = reinterpret_cast<BOOL (*)(FootClass *, PathType *, MoveType)>(0x004C0130);
     return func(this, path, move);
@@ -903,11 +903,16 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
         FACING_NONE,
         FACING_NORTH };
 
-    if (path == nullptr || path->Moves == nullptr || path->Length == 0) {
+    if (path == nullptr || path->Moves == nullptr) {
         return 0;
     }
 
     path->Moves[path->Length] = FACING_NONE;
+
+    if (path->Length) {
+        return 0;
+    }
+    
     cell_t cell = path->StartCell;
 
     // If we have more than 1 move in our move queue, attempt to optimise
@@ -929,7 +934,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
 
                 // Don't think this bit is possible given the math, original was
                 // probably % 8 rather than & 7 for the adjusts.
-                if (facing_diff < 0) {
+                if ((int8_t)facing_diff < 0) {
                     facing_diff = Facing_Adjust(facing_diff, FACING_COUNT);
                 }
 
@@ -942,15 +947,13 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
                     FacingType tmp;
 
                     if (trans_move != FACING_NORTH) { // != 0
-                        if ((*last_move & FACING_NORTH_EAST) != 0) { // == -1 or 1
-                            tmp = Facing_Adjust(*last_move, trans_move >= FACING_NORTH ? FACING_NORTH_EAST : FACING_NONE);
+                        if ((*last_move & FACING_ORDINAL_TEST) != 0) { // == -1 or 1
+                            tmp = Facing_Adjust(*last_move, (int8_t)trans_move >= FACING_NORTH ? FACING_NORTH_EAST : FACING_NONE);
 
                             // This should always be true given the possible
                             // values.
-                            if (std::abs((int)trans_move) == 1) {
-                                int score = Passable_Cell(Cell_Get_Adjacent(cell, tmp), tmp, -1, move);
-
-                                if (score != 0) {
+                            if (std::abs((int8_t)trans_move) == 1) {
+                                if (Passable_Cell(Cell_Get_Adjacent(cell, tmp), tmp, -1, move) != 0) {
                                     *next_move = tmp;
                                     *last_move = tmp;
                                 }

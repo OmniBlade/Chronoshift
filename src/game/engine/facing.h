@@ -180,9 +180,9 @@ inline FacingType SS_41B710(FacingType facing, int chirality)
 
 // sub_44BEA4 in SS
 // TODO rename, Subtract Facing?
-inline FacingType Reverse_Adjust(FacingType facing, int chirality)
+inline FacingType Reverse_Adjust(FacingType facing, FacingType chirality)
 {
-    return (FacingType)(((unsigned)facing - (unsigned)chirality) & (FACING_COUNT - 1)); // 7
+    return (facing - chirality) % FACING_COUNT; // 7
 }
 
 // sub_41B73C in SS
