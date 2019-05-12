@@ -19,7 +19,9 @@
 #include "gamedebug.h"
 #include "globals.h"
 #include "iomap.h"
+#include "rules.h"
 #include "session.h"
+#include "target.h"
 #include "team.h"
 #include <algorithm>
 #include <cstdlib>
@@ -601,9 +603,121 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
     return &_path;
 }
 
+/**
+ * Generates a basic path for this object to follow.
+ *
+ * 0x004C09E4
+ */
 BOOL FootClass::Basic_Path()
 {
-    return 0;
+    m_Paths[0] = FACING_NONE;
+    bool havepath = false;
+
+    if (Target_Legal(m_NavCom)) {
+        cell_t navcell = As_Cell(m_NavCom);
+        int navdist = Distance_To_Target(m_NavCom);
+        int straydist = m_Team.Is_Valid() ? Rule.Stray_Distance() : Rule.Close_Enough_Distance();
+
+        if (Can_Enter_Cell(navcell) && (navdist > straydist)) {
+            MZoneType mzone = reinterpret_cast<TechnoTypeClass const *>(&Class_Of())->Get_Movement_Zone();
+            SpeedType speed = reinterpret_cast<TechnoTypeClass const *>(&Class_Of())->Get_Speed();
+            cell_t thiscell = Coord_To_Cell(Center_Coord());
+            cell_t nearcell = Map.Nearby_Location(navcell, speed, Map[thiscell].Get_Zone(mzone), mzone);
+
+            // If we have a nearby cell and its closer than navdist, set that to
+            // the nav cell instead.
+            if (nearcell != 0) {
+                if (::Distance(Cell_To_Coord(navcell), Cell_To_Coord(nearcell)) < navdist) {
+                    navcell = nearcell;
+                }
+            }
+        }
+
+        switch (What_Am_I()) {
+            case RTTI_INFANTRY: {
+                FootClass *occupier = reinterpret_cast<FootClass *>(Map[Coord_To_Cell(Center_Coord())].Get_Occupier());
+
+                // Find a chained object from the cell occupier that has a valid
+                // path that isn't us if we are Infantry.
+                while (occupier != nullptr) {
+                    if (occupier != this && occupier->m_NavCom == m_NavCom && occupier->m_Paths[0] != -1) {
+                        break;
+                    }
+
+                    occupier = reinterpret_cast<FootClass *>(occupier->m_Next);
+                }
+
+                // If we found one, copy their path.
+                if (occupier != nullptr) {
+                    if (Coord_To_Cell(occupier->m_HeadTo) == Coord_To_Cell(occupier->Center_Coord())) {
+                        memcpy(m_Paths, &occupier->m_Paths[1], sizeof(m_Paths) - 1);
+                    } else {
+                        memcpy(m_Paths, occupier->m_Paths, sizeof(m_Paths));
+                    }
+
+                    if (m_Paths[0] != -1) {
+                        havepath = true;
+                    }
+                }
+
+                break;
+            }
+
+            default:
+                break;
+        }
+
+        // If we didn't find a path on a chained object.
+        if (!havepath) {
+            Mark(MARK_REMOVE);
+            MoveType move = MOVE_TEMP;
+            m_Paths[0] = FACING_NONE;
+
+            // If we are human owned and aren't close enough, downgrade max
+            // move types we will evaluate the path for.
+            if (m_OwnerHouse->Is_Human() && Get_Mission() == MISSION_MOVE) {
+                if (Distance_To_Target(m_NavCom) > Rule.Close_Enough_Distance()) {
+                    move = MOVE_DESTROYABLE;
+                }
+            }
+
+            PathType *path;
+            PathType pathobj;
+            FacingType facings[200];
+
+            // Do loop at least once to try and get a path, then check our moves.
+            do {
+                path = Find_Path(navcell, facings, ARRAY_SIZE(facings), m_field_124);
+
+                if (path != nullptr && path->Score != 0) {
+                    break;
+                }
+
+                ++m_field_124;
+            } while (m_field_124 <= move);
+
+            // If we found a path within the allowed move types.
+            if (m_field_124 <= move) {
+                memcpy(&pathobj, path, sizeof(pathobj));
+                Fixup_Path(&pathobj);
+                memcpy(m_Paths, facings, std::max(path->Length, 12));
+            }
+
+            Mark(MARK_PUT);
+        }
+
+        m_PathDelay.Reset(900 * Rule.Path_Delay());
+
+        // Do we have a valid path?
+        if (m_Paths[0] != -1) {
+            return true;
+        }
+
+        // Stop if path isn't valid.
+        Stop_Driver();
+    }
+
+    return false;
 }
 
 /**
@@ -613,7 +727,7 @@ BOOL FootClass::Basic_Path()
  */
 BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, int x1, int y1, int x2, int y2, MoveType move)
 {
-#ifndef CHRONOSHIFT_STANDALONE
+#if 0
     BOOL(*func)
     (FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType) =
         reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType)>(
@@ -656,7 +770,7 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
  */
 BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, int cost, MoveType move)
 {
-#ifndef CHRONOSHIFT_STANDALONE
+#if 0
     BOOL(*func)
     (FootClass *, PathType *, cell_t, FacingType, int, MoveType) =
         reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t, FacingType, int, MoveType)>(0x004BF5E0);
@@ -729,7 +843,7 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
 BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, FacingType chirality, FacingType facing,
     int threat, int threat_state, int length, MoveType move)
 {
-#ifndef CHRONOSHIFT_STANDALONE
+#if 0
     BOOL(*func)
     (FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType) =
         reinterpret_cast<BOOL (*)(FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType)>(
@@ -883,11 +997,6 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
  */
 int FootClass::Optimize_Moves(PathType *path, MoveType move)
 {
-#if 0
-    BOOL(*func)
-    (FootClass *, PathType *, MoveType) = reinterpret_cast<BOOL (*)(FootClass *, PathType *, MoveType)>(0x004C0130);
-    return func(this, path, move);
-#else
     // This is Script_Unit_Pathfinder_Smoothen in OpenDUNE, looks like it does
     // exactly the same thing but cell pass check doesn't use move types.
     DEBUG_ASSERT(m_IsActive);
@@ -1011,7 +1120,6 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
     *moves = FACING_NONE;
                 
     return path->Length;
-#endif
 }
 
 /**
@@ -1074,7 +1182,7 @@ cell_t FootClass::Safety_Point(cell_t start_cell, cell_t end_cell, int start, in
  */
 int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveType move)
 {
-#ifndef CHRONOSHIFT_STANDALONE
+#if 0
     int (*func)(FootClass *, cell_t, FacingType, int, MoveType) =
         reinterpret_cast<int (*)(FootClass *, cell_t, FacingType, int, MoveType)>(0x004C0570);
     return func(this, cell, facing, threat, move);

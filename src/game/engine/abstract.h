@@ -45,9 +45,8 @@ public:
     BOOL Is_Techno() const;
     BOOL Is_Foot() const;
     BOOL Is_Ground_Foot() const;
-
+    int Distance_To_Target(target_t target);
     cell_t Center_Cell() const { return Coord_To_Cell(Center_Coord()); }
-
     int Get_Heap_ID() const { return m_HeapID; }
     BOOL Is_Active() const { return m_IsActive; }
     RTTIType What_Am_I() const { return m_RTTI; }
