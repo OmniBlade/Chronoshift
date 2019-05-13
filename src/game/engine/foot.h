@@ -37,6 +37,13 @@ struct PathType
 
 class FootClass : public TechnoClass
 {
+    enum
+    {
+        NAV_LENGTH = 10, // Length of our nav list.
+        PATH_LENGTH = 12, // Length of path we store to act on.
+        GEN_PATH_LENGTH = 200, // Length of path we actually generate.
+    };
+
 public:
     FootClass(RTTIType type, int id, HousesType house);
     FootClass(const FootClass &that);
@@ -161,12 +168,12 @@ protected:
     int32_t m_FormYCoefficient;
     target_t m_NavCom;
     target_t m_SuspendedNavCom;
-    target_t m_NavList[10];
+    target_t m_NavList[NAV_LENGTH];
     GamePtr<TeamClass> m_Team;
     TeamNumberType m_field_113;
     FootClass *m_field_114; // Next team member?
-    FacingType m_Paths[12];
-    MoveType m_field_124;
+    FacingType m_Paths[PATH_LENGTH];
+    MoveType m_PathMove; // The move type the current path was generated with.
     TCountDownTimerClass<FrameTimerClass> m_PathDelay; // path delay timer?
     uint32_t m_field_12E;
     TCountDownTimerClass<FrameTimerClass> m_BaseDefenseDelay;

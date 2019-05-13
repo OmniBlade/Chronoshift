@@ -66,7 +66,7 @@ FootClass::FootClass(RTTIType type, int id, HousesType house) :
     m_Team(nullptr),
     m_field_113(TEAM_NUMBER_NONE),
     m_field_114(0),
-    m_field_124((MoveType)1), // TODO: Confirm MoveTypes.
+    m_PathMove(MOVE_CLOAK),
     m_PathDelay(),
     m_field_12E(10),
     m_BaseDefenseDelay(),
@@ -102,7 +102,7 @@ FootClass::FootClass(const FootClass &that) :
     m_Team(that.m_Team),
     m_field_113(that.m_field_113),
     m_field_114(that.m_field_114),
-    m_field_124(that.m_field_124),
+    m_PathMove(that.m_PathMove),
     m_PathDelay(that.m_PathDelay),
     m_field_12E(that.m_field_12E),
     m_BaseDefenseDelay(that.m_BaseDefenseDelay),
@@ -294,7 +294,7 @@ target_t FootClass::Greatest_Threat(ThreatType threat)
 
 void FootClass::Assign_Destination(target_t dest)
 {
-    m_field_124 = (MoveType)1; // TODO: Confirm MoveTypes.
+    m_PathMove = MOVE_CLOAK;
     m_NavCom = dest;
 }
 
@@ -616,7 +616,7 @@ BOOL FootClass::Basic_Path()
     if (Target_Legal(m_NavCom)) {
         cell_t navcell = As_Cell(m_NavCom);
         int navdist = Distance_To_Target(m_NavCom);
-        int straydist = m_Team.Is_Valid() ? Rule.Stray_Distance() : Rule.Close_Enough_Distance();
+        int straydist = m_Team.Has_Valid_ID() ? Rule.Stray_Distance() : Rule.Close_Enough_Distance();
 
         if (Can_Enter_Cell(navcell) && (navdist > straydist)) {
             MZoneType mzone = reinterpret_cast<TechnoTypeClass const *>(&Class_Of())->Get_Movement_Zone();
@@ -627,30 +627,22 @@ BOOL FootClass::Basic_Path()
             // If we have a nearby cell and its closer than navdist, set that to
             // the nav cell instead.
             if (nearcell != 0) {
-                if (::Distance(Cell_To_Coord(navcell), Cell_To_Coord(nearcell)) < navdist) {
+                if (Distance(Cell_To_Coord(navcell), Cell_To_Coord(nearcell)) < navdist) {
                     navcell = nearcell;
                 }
             }
         }
 
-        switch (What_Am_I()) {
-            case RTTI_INFANTRY: {
-                FootClass *occupier = reinterpret_cast<FootClass *>(Map[Coord_To_Cell(Center_Coord())].Get_Occupier());
+        if (What_Am_I() == RTTI_INFANTRY) {
+            FootClass *occupier = reinterpret_cast<FootClass *>(Map[Coord_To_Cell(Center_Coord())].Get_Occupier());
 
-                // Find a chained object from the cell occupier that has a valid
-                // path that isn't us if we are Infantry.
-                while (occupier != nullptr) {
-                    if (occupier != this && occupier->m_NavCom == m_NavCom && occupier->m_Paths[0] != -1) {
-                        break;
-                    }
-
-                    occupier = reinterpret_cast<FootClass *>(occupier->m_Next);
-                }
-
-                // If we found one, copy their path.
-                if (occupier != nullptr) {
+            // Find a chained object from the cell occupier that has a valid
+            // path that isn't us if we are Infantry.
+            while (occupier != nullptr) {
+                if (occupier != this && What_Am_I() == RTTI_INFANTRY && occupier->m_NavCom == m_NavCom
+                    && occupier->m_Paths[0] != -1) {
                     if (Coord_To_Cell(occupier->m_HeadTo) == Coord_To_Cell(occupier->Center_Coord())) {
-                        memcpy(m_Paths, &occupier->m_Paths[1], sizeof(m_Paths) - 1);
+                        memcpy(m_Paths, &occupier->m_Paths[1], sizeof(m_Paths) - sizeof(m_Paths[0]));
                     } else {
                         memcpy(m_Paths, occupier->m_Paths, sizeof(m_Paths));
                     }
@@ -658,13 +650,12 @@ BOOL FootClass::Basic_Path()
                     if (m_Paths[0] != -1) {
                         havepath = true;
                     }
+
+                    break;
                 }
 
-                break;
+                occupier = reinterpret_cast<FootClass *>(occupier->m_Next);
             }
-
-            default:
-                break;
         }
 
         // If we didn't find a path on a chained object.
@@ -683,24 +674,24 @@ BOOL FootClass::Basic_Path()
 
             PathType *path;
             PathType pathobj;
-            FacingType facings[200];
+            FacingType facings[GEN_PATH_LENGTH];
 
             // Do loop at least once to try and get a path, then check our moves.
             do {
-                path = Find_Path(navcell, facings, ARRAY_SIZE(facings), m_field_124);
+                path = Find_Path(navcell, facings, GEN_PATH_LENGTH, m_PathMove);
 
                 if (path != nullptr && path->Score != 0) {
                     break;
                 }
 
-                ++m_field_124;
-            } while (m_field_124 <= move);
+                ++m_PathMove;
+            } while (m_PathMove <= move);
 
             // If we found a path within the allowed move types.
-            if (m_field_124 <= move) {
+            if (m_PathMove <= move) {
                 memcpy(&pathobj, path, sizeof(pathobj));
                 Fixup_Path(&pathobj);
-                memcpy(m_Paths, facings, std::max(path->Length, 12));
+                memcpy(m_Paths, facings, std::min(path->Length * sizeof(m_Paths[0]), PATH_LENGTH * sizeof(m_Paths[0])));
             }
 
             Mark(MARK_PUT);
