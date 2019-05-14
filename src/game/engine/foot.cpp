@@ -618,7 +618,7 @@ BOOL FootClass::Basic_Path()
         int navdist = Distance_To_Target(m_NavCom);
         int straydist = m_Team.Has_Valid_ID() ? Rule.Stray_Distance() : Rule.Close_Enough_Distance();
 
-        if (Can_Enter_Cell(navcell) && (navdist > straydist)) {
+        if (Can_Enter_Cell(navcell) > MOVE_CLOAK && navdist > straydist) {
             MZoneType mzone = reinterpret_cast<TechnoTypeClass const *>(&Class_Of())->Get_Movement_Zone();
             SpeedType speed = reinterpret_cast<TechnoTypeClass const *>(&Class_Of())->Get_Speed();
             cell_t thiscell = Coord_To_Cell(Center_Coord());
@@ -675,12 +675,17 @@ BOOL FootClass::Basic_Path()
             PathType *path;
             PathType pathobj;
             FacingType facings[GEN_PATH_LENGTH];
+            bool do_fixup = false;
 
             // Do loop at least once to try and get a path, then check our moves.
             do {
                 path = Find_Path(navcell, facings, GEN_PATH_LENGTH, m_PathMove);
 
                 if (path != nullptr && path->Score != 0) {
+                    //memcpy(&pathobj, path, sizeof(pathobj));
+                    pathobj = *path;
+                    do_fixup = true;
+
                     break;
                 }
 
@@ -688,7 +693,7 @@ BOOL FootClass::Basic_Path()
             } while (m_PathMove <= move);
 
             // If we found a path within the allowed move types.
-            if (m_PathMove <= move) {
+            if (do_fixup) {
                 memcpy(&pathobj, path, sizeof(pathobj));
                 Fixup_Path(&pathobj);
                 memcpy(m_Paths, facings, std::min(path->Length * sizeof(m_Paths[0]), PATH_LENGTH * sizeof(m_Paths[0])));
