@@ -667,7 +667,7 @@ BOOL FootClass::Basic_Path()
             // If we are human owned and aren't close enough, downgrade max
             // move types we will evaluate the path for.
             if (m_OwnerHouse->Is_Human() && Get_Mission() == MISSION_MOVE) {
-                if (Distance_To_Target(m_NavCom) > Rule.Close_Enough_Distance()) {
+                if (Distance_To_Target(m_NavCom) < Rule.Close_Enough_Distance()) {
                     move = MOVE_DESTROYABLE;
                 }
             }
