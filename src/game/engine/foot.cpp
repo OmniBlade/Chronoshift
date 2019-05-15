@@ -621,7 +621,7 @@ BOOL FootClass::Basic_Path()
         if (Can_Enter_Cell(navcell) > MOVE_CLOAK && navdist > straydist) {
             MZoneType mzone = reinterpret_cast<TechnoTypeClass const *>(&Class_Of())->Get_Movement_Zone();
             SpeedType speed = reinterpret_cast<TechnoTypeClass const *>(&Class_Of())->Get_Speed();
-            cell_t thiscell = Coord_To_Cell(Center_Coord());
+            cell_t thiscell = Coord_To_Cell(Get_Coord());
             cell_t nearcell = Map.Nearby_Location(navcell, speed, Map[thiscell].Get_Zone(mzone), mzone);
 
             // If we have a nearby cell and its closer than navdist, set that to
@@ -640,14 +640,14 @@ BOOL FootClass::Basic_Path()
             // path that isn't us if we are Infantry.
             while (occupier != nullptr) {
                 if (occupier != this && occupier->What_Am_I() == RTTI_INFANTRY && occupier->m_NavCom == m_NavCom
-                    && occupier->m_Paths[0] != -1) {
-                    if (Coord_To_Cell(occupier->m_HeadTo) == Coord_To_Cell(occupier->Center_Coord())) {
+                    && occupier->m_Paths[0] != FACING_NONE) {
+                    if (Coord_To_Cell(occupier->m_HeadTo) == Coord_To_Cell(occupier->Get_Coord())) {
                         memcpy(m_Paths, &occupier->m_Paths[1], sizeof(m_Paths) - sizeof(m_Paths[0]));
                     } else {
                         memcpy(m_Paths, occupier->m_Paths, sizeof(m_Paths));
                     }
 
-                    if (m_Paths[0] != -1) {
+                    if (m_Paths[0] != FACING_NONE) {
                         havepath = true;
                     }
 
@@ -704,7 +704,7 @@ BOOL FootClass::Basic_Path()
         m_PathDelay.Reset(900 * Rule.Path_Delay());
 
         // Do we have a valid path?
-        if (m_Paths[0] != -1) {
+        if (m_Paths[0] != FACING_NONE) {
             return true;
         }
 
