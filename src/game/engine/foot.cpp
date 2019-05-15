@@ -894,7 +894,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
                         edge_face = Facing_Adjust(edge_face, chirality);
                         edge_cell = Cell_Get_Adjacent(curr_cell, edge_face);
 
-                        goto break_loop;
+                        break;
                     }
                 }
 
@@ -928,14 +928,16 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
                 cell_cost = Passable_Cell(edge_cell, edge_face, threat, move);
 
                 if (cell_cost != 0) {
-                    goto break_loop;
+                    break;
                 }
             }
 
-        } while (edge_cell != destination);
-        loop_finished = true;
+            if (edge_cell == destination) {
+                loop_finished = true;
+                break;
+            }
+        } while (true);
 
-    break_loop:
         if (!loop_finished) {
             if (!Register_Cell(path, edge_cell, edge_face, cell_cost, move)) {
                 if (!Unravel_Loop(path, edge_cell, edge_face, start_x, start_y, dest_x, dest_y, move)) {
