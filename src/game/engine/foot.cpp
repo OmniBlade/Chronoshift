@@ -639,7 +639,7 @@ BOOL FootClass::Basic_Path()
             // Find a chained object from the cell occupier that has a valid
             // path that isn't us if we are Infantry.
             while (occupier != nullptr) {
-                if (occupier != this && What_Am_I() == RTTI_INFANTRY && occupier->m_NavCom == m_NavCom
+                if (occupier != this && occupier->What_Am_I() == RTTI_INFANTRY && occupier->m_NavCom == m_NavCom
                     && occupier->m_Paths[0] != -1) {
                     if (Coord_To_Cell(occupier->m_HeadTo) == Coord_To_Cell(occupier->Center_Coord())) {
                         memcpy(m_Paths, &occupier->m_Paths[1], sizeof(m_Paths) - sizeof(m_Paths[0]));
@@ -694,7 +694,6 @@ BOOL FootClass::Basic_Path()
 
             // If we found a path within the allowed move types.
             if (do_fixup) {
-                memcpy(&pathobj, path, sizeof(pathobj));
                 Fixup_Path(&pathobj);
                 memcpy(m_Paths, facings, std::min(path->Length * sizeof(m_Paths[0]), PATH_LENGTH * sizeof(m_Paths[0])));
             }
