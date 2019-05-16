@@ -136,7 +136,6 @@ protected:
             bool m_Firing : 1; // 32
             bool m_Rotating : 1; // 64
             bool m_Moving : 1; // 128
-
             bool m_Bit2_1 : 1; // 1
             bool m_InFormation : 1; // 2
             bool m_Bit2_4 : 1; // 4
@@ -154,7 +153,6 @@ protected:
     bool m_Firing;
     bool m_Rotating;
     bool m_Moving;
-
     bool m_Bit2_1;
     bool m_InFormation;
     bool m_Bit2_4;
@@ -174,7 +172,7 @@ protected:
     FootClass *m_field_114; // Next team member?
     FacingType m_Paths[PATH_LENGTH];
     MoveType m_PathMove; // The move type the current path was generated with.
-    TCountDownTimerClass<FrameTimerClass> m_PathDelay; // path delay timer?
+    TCountDownTimerClass<FrameTimerClass> m_PathDelay;
     uint32_t m_field_12E;
     TCountDownTimerClass<FrameTimerClass> m_BaseDefenseDelay;
     SpeedType m_TeamSpeed;
@@ -191,16 +189,16 @@ inline void FootClass::Hook_Me()
     Hook_Function(0x004C3328, *FootClass::Hook_Can_Demolish);
     Hook_Function(0x004C154C, *FootClass::Hook_Sort_Y);
     // Hook_Function(0x004C1B6C, *FootClass::Unlimbo); Needs TechnoClass stuff.
-    // Hook_Function(0x004BF77C, *FootClass::Find_Path);
-    // Hook_Function(0x004BF49C, *FootClass::Unravel_Loop);
-    // Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
-    // Hook_Function(0x004BFDE4, *FootClass::Follow_Edge);
-    // Hook_Function(0x004C0130, *FootClass::Optimize_Moves);
-    // Hook_Function(0x004C037C, *FootClass::Safety_Point);
-    // Hook_Function(0x004C0570, *FootClass::Passable_Cell);
-    // Hook_Function(0x004BF470, *FootClass::Point_Relative_To_Line);
-    // Hook_Function(0x004C09E4, *FootClass::Basic_Path);
-    Hook_Call(0x004C0CDE, *FootClass::Find_Path_Wrapper); // replaces Find_Path call in Basic_Path
+    Hook_Function(0x004BF77C, *FootClass::Find_Path);
+    Hook_Function(0x004BF49C, *FootClass::Unravel_Loop);
+    Hook_Function(0x004BF5E0, *FootClass::Register_Cell);
+    Hook_Function(0x004BFDE4, *FootClass::Follow_Edge);
+    Hook_Function(0x004C0130, *FootClass::Optimize_Moves);
+    // Hook_Function(0x004C037C, *FootClass::Safety_Point); Need to work out test case
+    Hook_Function(0x004C0570, *FootClass::Passable_Cell);
+    Hook_Function(0x004BF470, *FootClass::Point_Relative_To_Line);
+    Hook_Function(0x004C09E4, *FootClass::Basic_Path);
+    // Hook_Call(0x004C0CDE, *FootClass::Find_Path_Wrapper); // replaces Find_Path call in Basic_Path
 #endif
 }
 #endif

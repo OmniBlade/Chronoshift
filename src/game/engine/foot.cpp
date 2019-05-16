@@ -363,7 +363,7 @@ void FootClass::Fixup_Path(PathType *path)
  */
 PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, MoveType move)
 {
-    DEBUG_LOG("Running Find_Path...\n");
+    // DEBUG_LOG("Running Find_Path...\n");
     // This is Script_Unit_Pathfinder in OpenDUNE which returns the struct as
     // an object instead of using a static instance. Might be useful to study
     // for rewriting this without the gotos.
@@ -381,11 +381,11 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
 
     // Are we part of a team and should that team avoid threats?
     if (!m_Team.Is_Valid() || !m_Team->Should_Avoid_Threats()) {
-        DEBUG_LOG(" Threat procesing will not be performed for final cell.\n");
+        // DEBUG_LOG(" Threat procesing will not be performed for final cell.\n");
         threat = -1;
         risk = -1;
     } else {
-        DEBUG_LOG(" Threat procesing will be performed if needed for final cell.\n");
+        // DEBUG_LOG(" Threat procesing will be performed if needed for final cell.\n");
         if (!m_Team.Is_Valid()) {
             risk = Risk();
         } else {
@@ -421,11 +421,11 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
         int cell_score = Passable_Cell(adj_cell, direction, threat, move);
 
         if (cell_score != 0) { // Great, we have a direct move, do the next round.
-            DEBUG_LOG("  Cell passable and on direct route, registering cell.\n");
+            // DEBUG_LOG("  Cell passable and on direct route, registering cell.\n");
             Register_Cell(&_path, adj_cell, direction, cell_score, move);
             current_cell = adj_cell;
         } else { // Oops, we bumped into something, find a way around.
-            DEBUG_LOG("  No direct route, doing further searching.\n");
+            // DEBUG_LOG("  No direct route, doing further searching.\n");
             FacingType right_moves[304];
             PathType right_path;
             int right_score = 0;
@@ -455,7 +455,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                             break;
                         }
 
-                        DEBUG_LOG("  Adjusting threat state for final cell early check.\n");
+                        // DEBUG_LOG("  Adjusting threat state for final cell early check.\n");
                         switch (threat_state++) {
                             case 0:
                                 threat = risk / 2;
@@ -509,17 +509,17 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                     move);
 
                 if (left_score != 0 || right_score != 0) {
-                    DEBUG_LOG("  Found a path following an edge.\n");
+                    // DEBUG_LOG("  Found a path following an edge.\n");
                     break;
                 }
 
-                DEBUG_LOG("  Follow_Edge failed to find path, checking adjacents.\n");
+                // DEBUG_LOG("  Follow_Edge failed to find path, checking adjacents.\n");
                 while (adj_cell != dest) {
                     next_dir = Direction_To_Facing(Cell_Direction8(adj_cell, dest));
                     adj_cell = Cell_Get_Adjacent(adj_cell, next_dir);
 
                     if (Passable_Cell(adj_cell, next_dir, threat, move) == 0) {
-                        DEBUG_LOG("  Adjacent cell not passable, incrementing exit checker.\n");
+                        // DEBUG_LOG("  Adjacent cell not passable, incrementing exit checker.\n");
                         ++i;
 
                         break;
@@ -531,15 +531,14 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                 }
 
                 if (threat == -1) {
-                    DEBUG_LOG("  Find_Path bailing as failed Follow_Edge and adj_cell == dest.\n");
-
+                    // DEBUG_LOG("  Find_Path bailing as failed Follow_Edge and adj_cell == dest.\n");
                     // Set current a break to finish pathfinding.
                     current_cell = adj_cell;
 
                     break;
                 }
 
-                DEBUG_LOG("  Adjusting threat for final cell check.\n");
+                // DEBUG_LOG("  Adjusting threat for final cell check.\n");
                 switch (threat_state++) {
                     case 0:
                         threat = risk >> 1;
@@ -561,22 +560,20 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                 chosen_path = &left_path;
 
                 if (right_score == 0) {
-                    DEBUG_LOG("  Find_Path found a left path.\n");
+                    // DEBUG_LOG("  Find_Path found a left path.\n");
                     chosen_path = &left_path;
                 } else if (left_score == 0) {
-                    DEBUG_LOG("  Find_Path found a right path.\n");
+                    // DEBUG_LOG("  Find_Path found a right path.\n");
                     chosen_path = &right_path;
                 } else {
-                    DEBUG_LOG("  Find_Path chose path based on length, left %d vs right %d.\n",
-                        left_path.Length,
-                        right_path.Length);
+                    // DEBUG_LOG("  Find_Path chose path based on length, left %d vs right %d.\n", left_path.Length, right_path.Length);
                     chosen_path = left_path.Length >= right_path.Length ? &right_path : &left_path;
                 }
 
                 int move_count = std::min(chosen_path->Length, length);
 
                 if (move_count > 0) {
-                    DEBUG_LOG("  Find_Path is copying .\n");
+                    // DEBUG_LOG("  Find_Path is copying .\n");
                     memcpy(_path.Overlap, chosen_path->Overlap, sizeof(MainOverlap));
                     memcpy(_path.Moves, chosen_path->Moves, move_count);
                     _path.Length = move_count;
@@ -586,7 +583,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
 
                     current_cell = adj_cell;
                 } else {
-                    DEBUG_LOG("  Find_Path bailing, mount cound 0 after successful follow edge.\n");
+                    // DEBUG_LOG("  Find_Path bailing, mount cound 0 after successful follow edge.\n");
                     break;
                 }
             }
@@ -599,7 +596,7 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
 
     Optimize_Moves(&_path, move);
 
-    DEBUG_LOG("Completed Find_Path...\n");
+    // DEBUG_LOG("Completed Find_Path...\n");
     return &_path;
 }
 
@@ -722,13 +719,6 @@ BOOL FootClass::Basic_Path()
  */
 BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, int x1, int y1, int x2, int y2, MoveType move)
 {
-#if 0
-    BOOL(*func)
-    (FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType) =
-        reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t &, FacingType &, int, int, int, int, MoveType)>(
-            0x004BF49C);
-    return func(this, path, cell, facing, x1, y1, x2, y2, move);
-#else
     BOOL even = false;
     cell_t cellnum = cell + AdjacentCell[Opposite_Facing(facing)];
     FacingType *facing_ptr = &path->Moves[path->Length - 1];
@@ -755,7 +745,6 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
     }
 
     return false;
-#endif
 }
 
 /**
@@ -765,12 +754,6 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
  */
 BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, int cost, MoveType move)
 {
-#if 0
-    BOOL(*func)
-    (FootClass *, PathType *, cell_t, FacingType, int, MoveType) =
-        reinterpret_cast<BOOL (*)(FootClass *, PathType *, cell_t, FacingType, int, MoveType)>(0x004BF5E0);
-    return func(this, path, cell, facing, cost, move);
-#else
     // Check the flagging for the passed in cell, if its not flagged, then add
     // facing to what appears to be the move list.
     if ((path->Overlap[cell / PATH_FLAG_BITSIZE] & (1 << (cell % PATH_FLAG_BITSIZE))) == 0) {
@@ -827,7 +810,6 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
     }
 
     return false;
-#endif
 }
 
 /**
@@ -838,13 +820,6 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
 BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, FacingType chirality, FacingType facing,
     int threat, int threat_state, int length, MoveType move)
 {
-#if 0
-    BOOL(*func)
-    (FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType) =
-        reinterpret_cast<BOOL (*)(FootClass *, cell_t, cell_t, PathType *, FacingType, FacingType, int, int, int, MoveType)>(
-            0x004BFDE4);
-    return func(this, start, destination, path, chirality, facing, threat, threat_state, length, move);
-#else
     // OpenDUNE calls this function Script_Unit_Pathfinder_Connect. Again the
     // C&C version is more complicated, checking the relative position of
     // the cell being checked against a straight line to the target.
@@ -984,7 +959,6 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
     }
 
     return false;
-#endif
 }
 
 /**
@@ -1179,11 +1153,6 @@ cell_t FootClass::Safety_Point(cell_t start_cell, cell_t end_cell, int start, in
  */
 int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveType move)
 {
-#if 0
-    int (*func)(FootClass *, cell_t, FacingType, int, MoveType) =
-        reinterpret_cast<int (*)(FootClass *, cell_t, FacingType, int, MoveType)>(0x004C0570);
-    return func(this, cell, facing, threat, move);
-#else
     static int const _value[MOVE_COUNT] = { 1, 1, 3, 8, 10, 0 };
 
     MoveType canmove = Can_Enter_Cell(cell, facing);
@@ -1203,7 +1172,6 @@ int FootClass::Passable_Cell(cell_t cell, FacingType facing, int threat, MoveTyp
     }
 
     return 0;
-#endif
 }
 
 /**
