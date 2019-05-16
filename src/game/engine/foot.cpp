@@ -1184,6 +1184,9 @@ int FootClass::Point_Relative_To_Line(int px, int py, int sx, int sy, int ex, in
     return (px - ex) * (sy - ey) - (sx - ex) * (py - ey);
 }
 
+/**
+ * Currently not used, but can be hooked over Find_Path to check our code matches original.
+ */
 PathType *FootClass::Find_Path_Wrapper(cell_t dest, FacingType *buffer, int length, MoveType move)
 {
     DEBUG_LOG("***Find_Path_Wrapper entered***\n");
