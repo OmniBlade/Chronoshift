@@ -754,9 +754,11 @@ BOOL FootClass::Unravel_Loop(PathType *path, cell_t &cell, FacingType &facing, i
  */
 BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, int cost, MoveType move)
 {
+    DEBUG_ASSERT(cell >= 0);
+
     // Check the flagging for the passed in cell, if its not flagged, then add
     // facing to what appears to be the move list.
-    if ((path->Overlap[cell / PATH_FLAG_BITSIZE] & (1 << (cell % PATH_FLAG_BITSIZE))) == 0) {
+    if (path->Overlap[cell / PATH_FLAG_BITSIZE] & (1 << (cell % PATH_FLAG_BITSIZE))) {
         path->Moves[path->Length++] = facing;
         path->Score += cost;
         path->Overlap[cell / PATH_FLAG_BITSIZE] |= 1 << (cell % PATH_FLAG_BITSIZE);
@@ -764,12 +766,10 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
         return true;
     }
 
-    FacingType last_move = path->Moves[path->Length - 1];
-
     // If the last facing in the list matches our facing, then do some unflagging
     // vodoo
-    if (Opposite_Facing(facing) == last_move) {
-        cell_t cellnum = Cell_Get_Adjacent(cell, last_move); // AdjacentCell[last_move] + cell;
+    if (Opposite_Facing(facing) == path->Moves[path->Length - 1]) {
+        cell_t cellnum = Cell_Get_Adjacent(cell, Opposite_Facing(facing));
         path->Overlap[cellnum / PATH_FLAG_BITSIZE] &= ~(1 << (cellnum % PATH_FLAG_BITSIZE));
         --path->Length;
 
@@ -779,6 +779,7 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
     // If cell doesn't equal the previous cell perhaps?
     if (cell != path->PreviousCell) {
         int count = 0;
+        int final_count = 0;
         cell_t test_cell = path->StartCell;
         FacingType *face_ptr = path->Moves;
         path->PreviousCell = cell;
@@ -786,25 +787,30 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
         // If the cell isn't the start cell, go through the list and see if any
         // of the directions we currently have lead to the cell.
         if (cell != path->StartCell) {
-            for (; count < path->Length; ++count) {
-                test_cell += AdjacentCell[*face_ptr++];
+            while (count < path->Length) {
+                test_cell = Cell_Get_Adjacent(test_cell, *face_ptr);
+                ++count;
+                ++face_ptr;
 
                 if (test_cell == cell) {
                     break;
                 }
             }
+
+            final_count = count;
         }
 
         // For any remaining count do more stuff.
-        for (int i = count; i < path->Length; ++i) {
-            cell_t adj_cell = AdjacentCell[*face_ptr] + test_cell;
-            path->Score -= Passable_Cell(adj_cell, *face_ptr, -1, move);
-            path->Overlap[adj_cell / PATH_FLAG_BITSIZE] &= ~(1 << (adj_cell % PATH_FLAG_BITSIZE));
-            test_cell = adj_cell;
+        while (count < path->Length) {
+            test_cell = Cell_Get_Adjacent(test_cell, *face_ptr);
+            path->Score -= Passable_Cell(test_cell, *face_ptr, -1, move);
+            // Sole has a -1 before the 1 << while RA doesn't here...
+            path->Overlap[test_cell / PATH_FLAG_BITSIZE] &= ~(1 << (test_cell % PATH_FLAG_BITSIZE));
+            ++count;
             ++face_ptr;
         }
 
-        path->Length = count;
+        path->Length = final_count;
 
         return true;
     }
@@ -887,7 +893,7 @@ BOOL FootClass::Follow_Edge(cell_t start, cell_t destination, PathType *path, Fa
                     either_side_of_line = false;
                 }
 
-                if (either_side_of_line && Opposite_Facing(edge_face) == path->Moves[path->Length - 1]) {
+                if (either_side_of_line && path->Length > 0 && Opposite_Facing(edge_face) == path->Moves[path->Length - 1]) {
                     either_side_of_line = false;
                 }
             }
