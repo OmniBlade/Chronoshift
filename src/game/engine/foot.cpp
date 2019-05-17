@@ -566,7 +566,8 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                     // DEBUG_LOG("  Find_Path found a right path.\n");
                     chosen_path = &right_path;
                 } else {
-                    // DEBUG_LOG("  Find_Path chose path based on length, left %d vs right %d.\n", left_path.Length, right_path.Length);
+                    // DEBUG_LOG("  Find_Path chose path based on length, left %d vs right %d.\n", left_path.Length,
+                    // right_path.Length);
                     chosen_path = left_path.Length >= right_path.Length ? &right_path : &left_path;
                 }
 
@@ -586,6 +587,8 @@ PathType *FootClass::Find_Path(cell_t dest, FacingType *buffer, int length, Move
                     // DEBUG_LOG("  Find_Path bailing, mount cound 0 after successful follow edge.\n");
                     break;
                 }
+            } else {
+                break;
             }
         }
     }
@@ -679,7 +682,7 @@ BOOL FootClass::Basic_Path()
                 path = Find_Path(navcell, facings, GEN_PATH_LENGTH, m_PathMove);
 
                 if (path != nullptr && path->Score != 0) {
-                    //memcpy(&pathobj, path, sizeof(pathobj));
+                    // memcpy(&pathobj, path, sizeof(pathobj));
                     pathobj = *path;
                     do_fixup = true;
 
@@ -979,7 +982,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
     DEBUG_ASSERT(m_IsActive);
     DEBUG_ASSERT(move != MOVE_NONE);
     // DEBUG_ASSERT_PRINT(move < MOVE_COUNT, "move value is %d which exceed expected %d.\n", move, MOVE_COUNT);
-                
+
     static FacingType _trans[] = { FACING_NORTH,
         FACING_NORTH,
         FACING_NORTH_EAST,
@@ -1095,7 +1098,7 @@ int FootClass::Optimize_Moves(PathType *path, MoveType move)
 
     ++path->Length;
     *moves = FACING_NONE;
-                
+
     return path->Length;
 }
 

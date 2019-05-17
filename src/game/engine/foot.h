@@ -197,8 +197,8 @@ inline void FootClass::Hook_Me()
     // Hook_Function(0x004C037C, *FootClass::Safety_Point); Need to work out test case
     Hook_Function(0x004C0570, *FootClass::Passable_Cell);
     Hook_Function(0x004BF470, *FootClass::Point_Relative_To_Line);
-    Hook_Function(0x004C09E4, *FootClass::Basic_Path);
-    // Hook_Call(0x004C0CDE, *FootClass::Find_Path_Wrapper); // replaces Find_Path call in Basic_Path
+    ///Hook_Function(0x004C09E4, *FootClass::Basic_Path);
+    Hook_Call(0x004C0CDE, *FootClass::Find_Path_Wrapper); // replaces Find_Path call in Basic_Path
 #endif
 }
 #endif
