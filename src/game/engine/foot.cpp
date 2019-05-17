@@ -758,7 +758,7 @@ BOOL FootClass::Register_Cell(PathType *path, cell_t cell, FacingType facing, in
 
     // Check the flagging for the passed in cell, if its not flagged, then add
     // facing to what appears to be the move list.
-    if (path->Overlap[cell / PATH_FLAG_BITSIZE] & (1 << (cell % PATH_FLAG_BITSIZE))) {
+    if (!(path->Overlap[cell / PATH_FLAG_BITSIZE] & (1 << (cell % PATH_FLAG_BITSIZE)))) {
         path->Moves[path->Length++] = facing;
         path->Score += cost;
         path->Overlap[cell / PATH_FLAG_BITSIZE] |= 1 << (cell % PATH_FLAG_BITSIZE);
