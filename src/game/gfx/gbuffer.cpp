@@ -51,7 +51,7 @@ GraphicBufferClass g_sysMemPage;
 
 void Wait_Blit()
 {
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     DWORD result;
     do {
         result = g_paletteSurface->GetBltStatus(DDGBS_ISBLTDONE);
@@ -248,7 +248,7 @@ void GraphicViewPortClass::Clear(unsigned char color)
 
 int GraphicViewPortClass::Blit(GraphicViewPortClass &view, BOOL use_keysrc)
 {
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     if (In_Video_Memory() && view.In_Video_Memory()) {
         return DD_Linear_Blit_To_Linear(
             view, Get_XPos(), Get_YPos(), view.Get_XPos(), view.Get_YPos(), view.Get_Width(), view.Get_Height(), use_keysrc);
@@ -268,7 +268,7 @@ int GraphicViewPortClass::Blit(GraphicViewPortClass &view, BOOL use_keysrc)
 int GraphicViewPortClass::Blit(
     GraphicViewPortClass &view, int src_x, int src_y, int dst_x, int dst_y, int w, int h, BOOL use_keysrc)
 {
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     if (In_Video_Memory() && view.In_Video_Memory()) {
         return DD_Linear_Blit_To_Linear(view,
             src_x + Get_XPos(),
@@ -291,10 +291,11 @@ int GraphicViewPortClass::Blit(
     return 0;
 }
 
-void GraphicViewPortClass::Draw_Stamp(void *tileset, int icon, int x, int y, const void *remapper, int left, int top, int right, int bottom)
+void GraphicViewPortClass::Draw_Stamp(
+    void *tileset, int icon, int x, int y, const void *remapper, int left, int top, int right, int bottom)
 {
     if (Lock()) {
-        Buffer_Draw_Stamp_Clip(*this, (IconControlType*)tileset, icon, x, y, remapper, left, top, right, bottom);
+        Buffer_Draw_Stamp_Clip(*this, (IconControlType *)tileset, icon, x, y, remapper, left, top, right, bottom);
     }
 
     Unlock();
@@ -332,7 +333,7 @@ void GraphicViewPortClass::Scale(GraphicViewPortClass &view, int src_x, int src_
 int GraphicViewPortClass::DD_Linear_Blit_To_Linear(
     GraphicViewPortClass &view, int src_x, int src_y, int dst_x, int dst_y, int w, int h, BOOL use_keysrc)
 {
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     int keysrcflag = 0;
 
     // Flags if we are keying based on source key colour
@@ -391,11 +392,12 @@ unsigned GraphicViewPortClass::Print(const char *string, int x, int y, int fgrou
 }
 
 GraphicBufferClass::GraphicBufferClass()
-#ifdef PLATFORM_WINDOWS
-    : m_videoSurface(nullptr)
+#ifdef BUILD_WITH_DDRAW
+    :
+    m_videoSurface(nullptr)
 #endif
 {
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     memset(&m_surfaceInfo, 0, sizeof(m_surfaceInfo));
 #endif
 }
@@ -422,22 +424,49 @@ GraphicBufferClass::~GraphicBufferClass()
 
 void GraphicBufferClass::DD_Init(GBCEnum mode)
 {
-#ifndef CHRONOSHIFT_STANDALONE
-    static void (*call_ddinit)(GraphicBufferClass *, GBCEnum) =
-        reinterpret_cast<void (*)(GraphicBufferClass *, GBCEnum)>(0x005C0AF4);
-    call_ddinit(this, mode);
+#ifdef BUILD_WITH_DDRAW
+    memset(&m_surfaceInfo, 0, sizeof(m_surfaceInfo));
+    m_surfaceInfo.dwSize = sizeof(m_surfaceInfo);
+    m_surfaceInfo.dwFlags = DDSD_CAPS;
+    m_surfaceInfo.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+
+    if (!(mode & GBC_VISIBLE)) {
+        m_surfaceInfo.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+        m_surfaceInfo.dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
+        m_surfaceInfo.dwHeight = m_height;
+        m_surfaceInfo.dwWidth = m_width;
+    }
+
+    // This relates to old DOS resolution which the game doesn't actually
+    // support properly.
+    if (m_width == 320) {
+        m_surfaceInfo.ddsCaps.dwCaps |= DDSCAPS_MODEX;
+    }
+
+    g_directDrawObject->CreateSurface(&m_surfaceInfo, &m_videoSurface, NULL);
+    g_allSurfaces.Add_Surface(m_videoSurface);
+
+    if (mode & GBC_VISIBLE) {
+        g_paletteSurface = m_videoSurface;
+    }
+
+    m_graphicBuffer.Set_Allocated(false);
+    m_inVideoMemory = true;
+    m_offset = 0;
+    m_lockCount = 0;
 #endif
 }
 
 void GraphicBufferClass::Attach_DD_Surface(GraphicBufferClass *buffer)
 {
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     m_videoSurface->AddAttachedSurface(buffer->m_videoSurface);
 #endif
 }
 
-void GraphicBufferClass::Scale_Rotate(BitmapClass & bitmap, TPoint2D<int>& pivot, int scale, uint8_t angle)
+void GraphicBufferClass::Scale_Rotate(BitmapClass &bitmap, TPoint2D<int> &pivot, int scale, uint8_t angle)
 {
+    // clang-format off
     static const int _SineTab[256] = {
         0, 6, 12, 18, 25, 31, 37, 43, 49, 56, 62, 68, 74, 80, 86, 92,
         97, 103, 109, 115, 120, 126, 131, 136, 142, 147, 152, 157, 162, 167, 171, 176,
@@ -475,6 +504,7 @@ void GraphicBufferClass::Scale_Rotate(BitmapClass & bitmap, TPoint2D<int>& pivot
         180, 184, 189, 193, 197, 201, 205, 208, 212, 215, 219, 222, 225, 228, 231, 233,
         236, 238, 240, 242, 244, 246, 248, 249, 250, 252, 253, 253, 254, 255, 255, 255
     };
+    // clang-format on
 
     // Calculate transformation values using fixed point maths.
     int cos_val = _CosineTab[angle];
@@ -501,7 +531,7 @@ void GraphicBufferClass::Scale_Rotate(BitmapClass & bitmap, TPoint2D<int>& pivot
     int pos_two = 0;
     int src_pos = 0;
     int dst_pos = 0;
-    uint8_t *src_ptr = static_cast<uint8_t*>(bitmap.Get_Bitmap());
+    uint8_t *src_ptr = static_cast<uint8_t *>(bitmap.Get_Bitmap());
     uint8_t *dst_ptr = m_graphicBuffer.Get_Buffer();
 
     // Perform adjustments different rotation directions?
@@ -526,10 +556,10 @@ void GraphicBufferClass::Scale_Rotate(BitmapClass & bitmap, TPoint2D<int>& pivot
     }
 
     dst_pos = y_dst_start * m_width + x_dst_start;
-    
+
     // Decide which way we are rotating?
     if (x_diff_one > y_diff_one) {
-        for (int k = 0; ; ++k) {
+        for (int k = 0;; ++k) {
             if (k >= y_diff_two) {
                 break;
             }
@@ -577,7 +607,7 @@ void GraphicBufferClass::Scale_Rotate(BitmapClass & bitmap, TPoint2D<int>& pivot
             }
         }
     } else {
-        for (int i = 0; ; ++i) {
+        for (int i = 0;; ++i) {
             if (i >= x_diff_two) {
                 break;
             }
@@ -633,7 +663,7 @@ void GraphicBufferClass::Init(int width, int height, void *buffer, int size, GBC
     m_width = width;
     m_height = height;
 
-    if ((mode & GBC_VIDEO_MEM) != 0) {
+    if (mode & GBC_VIDEO_MEM) {
         DD_Init(mode);
     } else {
         if (buffer) {
@@ -661,28 +691,108 @@ void GraphicBufferClass::Init(int width, int height, void *buffer, int size, GBC
 
 void GraphicBufferClass::Un_Init()
 {
-#ifndef CHRONOSHIFT_STANDALONE
-    static void (*call_uninit)(GraphicBufferClass *) = reinterpret_cast<void (*)(GraphicBufferClass *)>(0x005C0D0F);
-    call_uninit(this);
+#ifdef BUILD_WITH_DDRAW
+    if (!m_inVideoMemory || m_videoSurface == nullptr) {
+        return;
+    }
+
+    while (m_lockCount > 0) {
+        if (m_videoSurface->DeleteAttachedSurface(0, NULL) == DDERR_SURFACELOST) {
+            if (GBufferFocusLoss != nullptr) {
+                GBufferFocusLoss();
+            }
+
+            g_allSurfaces.Restore_Surfaces();
+        }
+    }
+
+    g_allSurfaces.Remove_Surface(m_videoSurface);
+    m_videoSurface->Release();
+    m_videoSurface = nullptr;
 #endif
 }
 
-// Lock and Unlock need WWMouse and SurfaceMonitorClass classes.
 BOOL GraphicBufferClass::Lock()
 {
-#ifndef CHRONOSHIFT_STANDALONE
-    static BOOL (*call_lock)(GraphicBufferClass *) = reinterpret_cast<BOOL (*)(GraphicBufferClass *)>(0x005C101A);
-    return call_lock(this);
+#ifdef BUILD_WITH_DDRAW
+    if (!m_inVideoMemory) {
+        return true;
+    }
+
+    if (m_videoSurface == nullptr) {
+        return false;
+    }
+
+    if (!g_gameInFocus) {
+        return false;
+    }
+
+    g_mouse->Block_Mouse(this);
+
+    if (m_lockCount != 0) {
+        ++m_lockCount;
+        g_mouse->Unblock_Mouse(this);
+
+        return true;
+    } else if (m_videoSurface != nullptr) {
+        for (int i = 0; m_lockCount == 0 && i < 2; ++i) {
+            HRESULT locked = m_videoSurface->Lock(nullptr, &m_surfaceInfo, DDLOCK_WAIT, nullptr);
+
+            if (locked == DD_OK) {
+                m_offset = m_surfaceInfo.lpSurface;
+                m_pitch = m_surfaceInfo.lPitch;
+                m_pitch -= m_width;
+                ++m_lockCount;
+                // Original has a TotalLocks global that was probably for debugging.
+                g_mouse->Unblock_Mouse(this);
+
+                return 1;
+            }
+
+            if (locked == DDERR_SURFACELOST) {
+                if (GBufferFocusLoss != nullptr) {
+                    GBufferFocusLoss();
+                }
+
+                g_allSurfaces.Restore_Surfaces();
+            } else {
+                break;
+            }
+        }
+    }
+
+    g_mouse->Unblock_Mouse(this);
+
+    return false;
 #else
-    return 0;
+    return false;
 #endif
 }
 
 BOOL GraphicBufferClass::Unlock()
 {
-#ifndef CHRONOSHIFT_STANDALONE
-    static BOOL (*call_unlock)(GraphicBufferClass *) = reinterpret_cast<BOOL (*)(GraphicBufferClass *)>(0x005C1191);
-    return call_unlock(this);
+#ifdef BUILD_WITH_DDRAW
+    if (m_lockCount == 0 || !m_inVideoMemory) {
+        return true;
+    }
+
+    if (m_lockCount == 1 && m_videoSurface != nullptr) {
+        g_mouse->Block_Mouse(this);
+
+        if (m_videoSurface->Unlock(nullptr) != DD_OK) {
+            g_mouse->Unblock_Mouse(this);
+
+            return false;
+        } else {
+            m_offset = nullptr;
+            --m_lockCount;
+            g_mouse->Unblock_Mouse(this);
+        }
+    } else {
+        --m_lockCount;
+    }
+
+    return true;
 #else
     return 0;
 #endif
