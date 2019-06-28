@@ -22,8 +22,8 @@
 #include "buffer.h"
 #include "tpoint.h"
 
-#ifdef PLATFORM_WINDOWS
-#include "ddraw.h"
+#ifdef BUILD_WITH_DDRAW
+#include <ddraw.h>
 #endif
 
 #ifndef CHRONOSHIFT_STANDALONE
@@ -151,7 +151,7 @@ public:
     BufferClass *Get_GBuffer() { return &m_graphicBuffer; }
 
     void DD_Init(GBCEnum mode);
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     LPDIRECTDRAWSURFACE Get_DD_Surface() { return m_videoSurface; }
 #endif
 
@@ -170,7 +170,7 @@ public:
 
 private:
     BufferClass m_graphicBuffer;
-#ifdef PLATFORM_WINDOWS
+#ifdef BUILD_WITH_DDRAW
     LPDIRECTDRAWSURFACE m_videoSurface;
     DDSURFACEDESC m_surfaceInfo;
 #endif
@@ -185,9 +185,6 @@ GraphicViewPortClass *Set_Logic_Page(GraphicViewPortClass &view);
 inline void GraphicViewPortClass::Hook_Me() {}
 
 extern GraphicViewPortClass *&g_logicPage;
-#ifdef PLATFORM_WINDOWS
-extern LPDIRECTDRAWSURFACE &g_paletteSurface;
-#endif
 extern GraphicViewPortClass &g_seenBuff;
 extern GraphicViewPortClass &g_hidPage;
 extern GraphicBufferClass &g_visiblePage;
@@ -195,9 +192,6 @@ extern GraphicBufferClass &g_hiddenPage;
 extern GraphicBufferClass &g_sysMemPage;
 #else
 extern GraphicViewPortClass *g_logicPage;
-#ifdef PLATFORM_WINDOWS
-extern LPDIRECTDRAWSURFACE g_paletteSurface;
-#endif
 extern GraphicViewPortClass g_seenBuff;
 extern GraphicViewPortClass g_hidPage;
 extern GraphicBufferClass g_visiblePage;

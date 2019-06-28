@@ -14,8 +14,13 @@
  *            LICENSE
  */
 #include "gbuffer.h"
-#include "gamedebug.h"
 #include "blitters.h"
+#include "eventhandler.h"
+#include "gamedebug.h"
+#include "globals.h"
+#include "initvideo.h"
+#include "mouse.h"
+#include "surfacemonitor.h"
 #include "textprint.h"
 #include "tileset.h"
 #include <algorithm>
@@ -26,7 +31,6 @@
 int &GraphicViewPortClass::ScreenWidth = Make_Global<int>(0x006016B0);
 int &GraphicViewPortClass::ScreenHeight = Make_Global<int>(0x006016B4);
 GraphicViewPortClass *&g_logicPage = Make_Global<GraphicViewPortClass *>(0x006AC274);
-LPDIRECTDRAWSURFACE &g_paletteSurface = Make_Global<LPDIRECTDRAWSURFACE>(0x006B18A4);
 GraphicViewPortClass &g_seenBuff = Make_Global<GraphicViewPortClass>(0x006807A4);
 GraphicViewPortClass &g_hidPage = Make_Global<GraphicViewPortClass>(0x006807CC);
 GraphicBufferClass &g_visiblePage = Make_Global<GraphicBufferClass>(0x0068065C);
@@ -38,9 +42,6 @@ BOOL GraphicViewPortClass::AllowStretchBlits;
 int GraphicViewPortClass::ScreenWidth = 640;
 int GraphicViewPortClass::ScreenHeight = 400;
 GraphicViewPortClass *g_logicPage = nullptr;
-#ifdef PLATFORM_WINDOWS
-LPDIRECTDRAWSURFACE g_paletteSurface = nullptr;
-#endif
 GraphicViewPortClass g_seenBuff;
 GraphicViewPortClass g_hidPage;
 GraphicBufferClass g_visiblePage;
