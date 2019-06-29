@@ -27,6 +27,8 @@
 #include "hooker.h"
 
 BOOL Set_Video_Mode(uintptr_t handle, int w, int h, int bpp);
+void Reset_Video_Mode();
+BOOL Init_Video();
 
 #ifdef BUILD_WITH_DDRAW
 extern LPDIRECTDRAW &g_directDrawObject;
