@@ -665,7 +665,7 @@ void GraphicBufferClass::Init(int width, int height, void *buffer, int size, GBC
     m_width = width;
     m_height = height;
 
-    if (mode & GBC_VIDEO_MEM) {
+    if (mode & (GBC_VIDEO_MEM | GBC_VISIBLE)) {
         DD_Init(mode);
     } else {
         if (buffer) {
@@ -785,11 +785,11 @@ BOOL GraphicBufferClass::Unlock()
             g_mouse->Unblock_Mouse(this);
 
             return false;
-        } else {
-            m_offset = nullptr;
-            --m_lockCount;
-            g_mouse->Unblock_Mouse(this);
         }
+
+        m_offset = nullptr;
+        --m_lockCount;
+        g_mouse->Unblock_Mouse(this);
     } else {
         --m_lockCount;
     }

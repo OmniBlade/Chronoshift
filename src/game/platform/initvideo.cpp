@@ -52,7 +52,7 @@ enum HWCapsType
  *
  * 0x005C8A40
  */
-static void Process_DD_Result(HRESULT result, int unk)
+static void Process_DD_Result(HRESULT result, BOOL show_success = false)
 {
     // TODO? Popped up meesage box for various errors in original.
     return;
@@ -71,11 +71,11 @@ static void Check_Overlapped_Blit_Capability()
     g_OverlappedVideoBlits = true;
     buff.Init(64, 64, 0, 0, GBC_VIDEO_MEM);
     buff.Clear();
-    buff.Put_Pixel(0, 0, 0xFF);
+    buff.Put_Pixel(0, 0, 255);
     buff.Blit(buff, 0, 0, 0, 1, buff.Get_Width(), buff.Get_Height() - 1);
     uint8_t pixel = buff.Get_Pixel(0, 5);
 
-    if (pixel == 0xFF) {
+    if (pixel == 255) {
         g_OverlappedVideoBlits = false;
     }
 }
@@ -97,7 +97,7 @@ static uint32_t Get_Hardware_Caps()
     HRESULT result = g_directDrawObject->GetCaps(&caps, nullptr);
 
     if (result != DD_OK) {
-        Process_DD_Result(result, 0);
+        Process_DD_Result(result);
 
         return 0;
     }
@@ -173,7 +173,7 @@ BOOL Set_Video_Mode(uintptr_t handle, int w, int h, int bpp)
 
     if (g_directDrawObject == nullptr) {
         result = DirectDrawCreate(nullptr, &g_directDrawObject, nullptr);
-        Process_DD_Result(result, 0);
+        Process_DD_Result(result);
 
         if (result != DD_OK) {
             return false;
@@ -181,7 +181,7 @@ BOOL Set_Video_Mode(uintptr_t handle, int w, int h, int bpp)
 
         result = g_directDrawObject->SetCooperativeLevel(
             (HWND)handle, (w == 320 ? DDSCL_ALLOWMODEX : 0) | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
-        Process_DD_Result(result, 0);
+        Process_DD_Result(result);
     }
 
     if (g_directDrawObject->SetDisplayMode(w, h, bpp) != DD_OK) {
@@ -198,7 +198,7 @@ BOOL Set_Video_Mode(uintptr_t handle, int w, int h, int bpp)
 #else
     result = g_directDrawObject->CreatePalette(DDPCAPS_8BIT | DDPCAPS_ALLOW256, g_paletteEntries, &g_palettePtr, nullptr);
 #endif
-    Process_DD_Result(result, 0);
+    Process_DD_Result(result);
 
     if (result != DD_OK) {
         return false;
@@ -220,9 +220,9 @@ void Reset_Video_Mode()
 #ifdef BUILD_WITH_DDRAW
     if (g_directDrawObject) {
         HRESULT result = g_directDrawObject->RestoreDisplayMode();
-        Process_DD_Result(result, 0);
+        Process_DD_Result(result);
         result = g_directDrawObject->Release();
-        Process_DD_Result(result, 0);
+        Process_DD_Result(result);
         g_directDrawObject = nullptr;
     }
 #endif
