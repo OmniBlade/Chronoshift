@@ -24,13 +24,13 @@
 #include <ddraw.h>
 #endif
 
-#ifndef CHRONOSHIFT_STANDALONE
-#include "hooker.h"
-
 BOOL Set_Video_Mode(uintptr_t handle, int w, int h, int bpp);
 void Reset_Video_Mode();
 BOOL Init_Video();
 void Set_Video_Palette(void *pal);
+
+#ifndef CHRONOSHIFT_STANDALONE
+#include "hooker.h"
 
 #ifdef BUILD_WITH_DDRAW
 extern LPDIRECTDRAW &g_directDrawObject;
