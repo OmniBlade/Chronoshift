@@ -235,6 +235,7 @@ void Reset_Video_Mode()
  */
 BOOL Init_Video()
 {
+#ifdef BUILD_WITH_DDRAW
     BOOL set_mode = false;
 
     if (g_ScreenHeight == 400) {
@@ -315,6 +316,9 @@ BOOL Init_Video()
     }
 
     return false;
+#else
+    return true;
+#endif
 }
 
 /**
