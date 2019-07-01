@@ -23,6 +23,7 @@
 #include "tpoint.h"
 
 #ifdef BUILD_WITH_DDRAW
+#define DIRECTDRAW_VERSION 0x300
 #include <ddraw.h>
 #endif
 
@@ -37,6 +38,7 @@ enum GBCEnum
     GBC_VIDEO_MEM = 1,
     GBC_VISIBLE = 2,
 };
+DEFINE_ENUMERATION_BITWISE_OPERATORS(GBCEnum);
 
 #define BLIT_GET_PITCH(view) (view.Get_Full_Pitch())
 
@@ -190,6 +192,7 @@ extern GraphicViewPortClass &g_hidPage;
 extern GraphicBufferClass &g_visiblePage;
 extern GraphicBufferClass &g_hiddenPage;
 extern GraphicBufferClass &g_sysMemPage;
+extern GraphicBufferClass &g_modeXBuff;
 #else
 extern GraphicViewPortClass *g_logicPage;
 extern GraphicViewPortClass g_seenBuff;
@@ -197,6 +200,7 @@ extern GraphicViewPortClass g_hidPage;
 extern GraphicBufferClass g_visiblePage;
 extern GraphicBufferClass g_hiddenPage;
 extern GraphicBufferClass g_sysMemPage;
+extern GraphicBufferClass g_modeXBuff;
 #endif
 
 #endif // GBUFFER_H
