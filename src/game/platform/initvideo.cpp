@@ -237,26 +237,26 @@ BOOL Init_Video()
 #ifdef BUILD_WITH_DDRAW
     BOOL set_mode = false;
 
-    if (g_ScreenHeight == 400) {
-        set_mode = Set_Video_Mode((uintptr_t)MainWindow, g_ScreenWidth, g_ScreenHeight, 8);
+    if (GraphicViewPortClass::ScreenHeight == 400) {
+        set_mode = Set_Video_Mode((uintptr_t)MainWindow, GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, 8);
 
         if (!set_mode) {
-            set_mode = Set_Video_Mode((uintptr_t)MainWindow, g_ScreenWidth, 480, 8);
+            set_mode = Set_Video_Mode((uintptr_t)MainWindow, GraphicViewPortClass::ScreenWidth, 480, 8);
 
             if (set_mode) {
-                g_ScreenHeight = 480;
+                GraphicViewPortClass::ScreenHeight = 480;
             }
         }
     } else {
-        set_mode = Set_Video_Mode((uintptr_t)MainWindow, g_ScreenWidth, g_ScreenHeight, 8);
+        set_mode = Set_Video_Mode((uintptr_t)MainWindow, GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, 8);
     }
 
     if (set_mode) {
-        if (g_ScreenWidth == 320) {
-            g_visiblePage.Init(g_ScreenWidth, g_ScreenHeight, nullptr, 0, GBC_NONE);
-            g_modeXBuff.Init(g_ScreenWidth, g_ScreenHeight, nullptr, 0, GBC_VIDEO_MEM | GBC_VISIBLE);
+        if (GraphicViewPortClass::ScreenWidth == 320) {
+            g_visiblePage.Init(GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, nullptr, 0, GBC_NONE);
+            g_modeXBuff.Init(GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, nullptr, 0, GBC_VIDEO_MEM | GBC_VISIBLE);
         } else {
-            g_visiblePage.Init(g_ScreenWidth, g_ScreenHeight, nullptr, 0, GBC_VIDEO_MEM | GBC_VISIBLE);
+            g_visiblePage.Init(GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, nullptr, 0, GBC_VIDEO_MEM | GBC_VISIBLE);
             DDSCAPS caps;
             memset(&caps, 0, sizeof(caps));
             g_visiblePage.Get_DD_Surface()->GetCaps(&caps);
@@ -276,11 +276,11 @@ BOOL Init_Video()
 
             uint32_t hwcaps = Get_Hardware_Caps();
 
-            if (Get_Video_Memory() < (g_ScreenWidth * g_ScreenHeight) || !(hwcaps & VIDEO_BLITTER)
+            if (Get_Video_Memory() < (GraphicViewPortClass::ScreenWidth * GraphicViewPortClass::ScreenHeight) || !(hwcaps & VIDEO_BLITTER)
                 || (hwcaps & VIDEO_NO_HARDWARE_ASSIST) || !VideoBackBufferAllowed) {
-                g_hiddenPage.Init(g_ScreenWidth, g_ScreenHeight, 0, 0, GBC_NONE);
+                g_hiddenPage.Init(GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, 0, 0, GBC_NONE);
             } else {
-                g_hiddenPage.Init(g_ScreenWidth, g_ScreenHeight, 0, 0, GBC_VIDEO_MEM);
+                g_hiddenPage.Init(GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, 0, 0, GBC_VIDEO_MEM);
                 DDSCAPS caps;
                 memset(&caps, 0, sizeof(caps));
                 g_hiddenPage.Get_DD_Surface()->GetCaps(&caps);
@@ -290,12 +290,12 @@ BOOL Init_Video()
                 } else {
                     g_allSurfaces.Remove_Surface(g_hiddenPage.Get_DD_Surface());
                     g_hiddenPage.Get_DD_Surface()->Release();
-                    g_hiddenPage.Init(g_ScreenWidth, g_ScreenHeight, 0, 0, GBC_NONE);
+                    g_hiddenPage.Init(GraphicViewPortClass::ScreenWidth, GraphicViewPortClass::ScreenHeight, 0, 0, GBC_NONE);
                 }
             }
         }
 
-        g_ScreenHeight = 400;
+        GraphicViewPortClass::ScreenHeight = 400;
         int y_offset = 0;
 
         if (g_visiblePage.Get_Height() == 480) {

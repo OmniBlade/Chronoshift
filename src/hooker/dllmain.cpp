@@ -37,6 +37,7 @@
 #include "house.h"
 #include "ini.h"
 #include "init.h"
+#include "initvideo.h"
 #include "interpolate.h"
 #include "iomap.h"
 #include "keyboard.h"
@@ -158,6 +159,11 @@ void Setup_Hooks()
     Init::Hook_Me();
     Hook_Function(0x004AAC58, &Force_CD_Available);
     Hook_Function(0x004A7C74, Main_Loop);
+    Hook_Function(0x005CA150, Wait_Blit);
+    Hook_Function(0x005C9D60, Set_Video_Mode);
+    Hook_Function(0x005C9E60, Reset_Video_Mode);
+    Hook_Function(0x00552368, Init_Video);
+    Hook_Function(0x005CA070, Set_Video_Palette);
 }
 
 StaticInitObject::StaticInitObject()

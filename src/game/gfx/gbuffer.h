@@ -27,10 +27,6 @@
 #include <ddraw.h>
 #endif
 
-#ifndef CHRONOSHIFT_STANDALONE
-#include "hooker.h"
-#endif
-
 // Flags for using DD surfaces in GBC
 enum GBCEnum
 {
@@ -170,6 +166,9 @@ public:
 
     static int TotalLocks;
 
+#ifndef CHRONOSHIFT_STANDALONE
+    static void Hook_Me();
+#endif
 private:
     BufferClass m_graphicBuffer;
 #ifdef BUILD_WITH_DDRAW
@@ -184,7 +183,19 @@ GraphicViewPortClass *Set_Logic_Page(GraphicViewPortClass *view);
 GraphicViewPortClass *Set_Logic_Page(GraphicViewPortClass &view);
 
 #ifndef CHRONOSHIFT_STANDALONE
+#include "hooker.h"
+
 inline void GraphicViewPortClass::Hook_Me() {}
+inline void GraphicBufferClass::Hook_Me()
+{
+#ifdef COMPILER_WATCOM
+    Hook_Function(0x005C0AF4, *GraphicBufferClass::DD_Init);
+    Hook_Function(0x005C0C2D, *GraphicBufferClass::Init);
+    Hook_Function(0x005C0D0F, *GraphicBufferClass::Un_Init);
+    Hook_Function(0x005C101A, *GraphicBufferClass::Lock);
+    Hook_Function(0x005C1191, *GraphicBufferClass::Unlock);
+#endif
+}
 
 extern GraphicViewPortClass *&g_logicPage;
 extern GraphicViewPortClass &g_seenBuff;
