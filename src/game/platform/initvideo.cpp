@@ -306,6 +306,8 @@ BOOL Init_Video()
         }
 
         g_hidPage.Attach(&g_hiddenPage, 0, y_offset, 640, 400);
+
+        return true;
     } else {
 #ifdef PLATFORM_WINDOWS
         MessageBoxA(MainWindow, "Error - Unable to set the video mode.", "Chronoshift", MB_ICONWARNING);

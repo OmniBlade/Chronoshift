@@ -78,8 +78,7 @@ GraphicViewPortClass *Set_Logic_Page(GraphicViewPortClass &view)
 }
 
 GraphicViewPortClass::GraphicViewPortClass(GraphicBufferClass *buffer, int x, int y, int w, int h) :
-    m_graphicBuff(nullptr),
-    m_lockCount(0)
+    m_graphicBuff(nullptr), m_lockCount(0)
 {
     Attach(buffer, x, y, w, h);
 }
@@ -729,11 +728,16 @@ BOOL GraphicBufferClass::Lock()
         return false;
     }
 
-    g_mouse->Block_Mouse(this);
+    if (g_mouse != nullptr) {
+        g_mouse->Block_Mouse(this);
+    }
 
     if (m_lockCount != 0) {
         ++m_lockCount;
-        g_mouse->Unblock_Mouse(this);
+
+        if (g_mouse != nullptr) {
+            g_mouse->Unblock_Mouse(this);
+        }
 
         return true;
     } else if (m_videoSurface != nullptr) {
@@ -746,7 +750,9 @@ BOOL GraphicBufferClass::Lock()
                 m_pitch -= m_width;
                 ++m_lockCount;
                 // Original has a TotalLocks global that was probably for debugging.
-                g_mouse->Unblock_Mouse(this);
+                if (g_mouse != nullptr) {
+                    g_mouse->Unblock_Mouse(this);
+                }
 
                 return 1;
             }
@@ -763,7 +769,9 @@ BOOL GraphicBufferClass::Lock()
         }
     }
 
-    g_mouse->Unblock_Mouse(this);
+    if (g_mouse != nullptr) {
+        g_mouse->Unblock_Mouse(this);
+    }
 
     return false;
 #else
@@ -779,17 +787,24 @@ BOOL GraphicBufferClass::Unlock()
     }
 
     if (m_lockCount == 1 && m_videoSurface != nullptr) {
-        g_mouse->Block_Mouse(this);
+        if (g_mouse != nullptr) {
+            g_mouse->Block_Mouse(this);
+        }
 
         if (m_videoSurface->Unlock(nullptr) != DD_OK) {
-            g_mouse->Unblock_Mouse(this);
+            if (g_mouse != nullptr) {
+                g_mouse->Unblock_Mouse(this);
+            }
 
             return false;
         }
 
         m_offset = nullptr;
         --m_lockCount;
-        g_mouse->Unblock_Mouse(this);
+
+        if (g_mouse != nullptr) {
+            g_mouse->Unblock_Mouse(this);
+        }
     } else {
         --m_lockCount;
     }
