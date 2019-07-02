@@ -36,14 +36,14 @@ LPDIRECTDRAWPALETTE g_palettePtr;
 #endif
 #endif
 
-enum HWCapsType
+enum VideoCaps
 {
-    HWCAPS_BLT = 1 << 0,
-    HWCAPS_BLTQUEUE = 1 << 1,
-    HWCAPS_PALETTEVSYNC = 1 << 2,
-    HWCAPS_BANKSWITCHED = 1 << 3,
-    HWCAPS_BLTCOLORFILL = 1 << 4,
-    HWCAPS_NOHARDWARE = 1 << 5,
+    VIDEO_BLITTER = 1 << 0, // Is blitting hardware accelerated?
+    VIDEO_BLITTER_ASYNC = 1 << 1, // Is HW blitting asyncronous?
+    VIDEO_SYNCPALETTE = 1 << 2, // Can palette changes sync to vertical update?
+    VIDEO_BANK_SWITCHED = 1 << 3, // Is video memory bank switched?
+    VIDEO_COLOR_FILL = 1 << 4, // Can blitter do filled rectangles?
+    VIDEO_NO_HARDWARE_ASSIST = 1 << 5, // No hardware acceleration available.
 };
 
 #ifdef BUILD_WITH_DDRAW
@@ -73,9 +73,8 @@ static void Check_Overlapped_Blit_Capability()
     buff.Clear();
     buff.Put_Pixel(0, 0, 255);
     buff.Blit(buff, 0, 0, 0, 1, buff.Get_Width(), buff.Get_Height() - 1);
-    uint8_t pixel = buff.Get_Pixel(0, 5);
 
-    if (pixel == 255) {
+    if (buff.Get_Pixel(0, 5) == 255) {
         g_OverlappedVideoBlits = false;
     }
 }
@@ -105,27 +104,27 @@ static uint32_t Get_Hardware_Caps()
     uint32_t retval = 0;
 
     if (caps.dwCaps & DDCAPS_BLT) {
-        retval |= HWCAPS_BLT;
+        retval |= VIDEO_BLITTER;
     }
 
     if (caps.dwCaps & DDCAPS_BLTQUEUE) {
-        retval |= HWCAPS_BLTQUEUE;
+        retval |= VIDEO_BLITTER_ASYNC;
     }
 
     if (caps.dwCaps & DDCAPS_PALETTEVSYNC) {
-        retval |= HWCAPS_PALETTEVSYNC;
+        retval |= VIDEO_SYNCPALETTE;
     }
 
     if (caps.dwCaps & DDCAPS_BANKSWITCHED) {
-        retval |= HWCAPS_BANKSWITCHED;
+        retval |= VIDEO_BANK_SWITCHED;
     }
 
     if (caps.dwCaps & DDCAPS_BLTCOLORFILL) {
-        retval |= HWCAPS_BLTCOLORFILL;
+        retval |= VIDEO_COLOR_FILL;
     }
 
     if (caps.dwCaps & DDCAPS_NOHARDWARE) {
-        retval |= HWCAPS_NOHARDWARE;
+        retval |= VIDEO_NO_HARDWARE_ASSIST;
     }
 
     return retval;
@@ -277,8 +276,8 @@ BOOL Init_Video()
 
             uint32_t hwcaps = Get_Hardware_Caps();
 
-            if (Get_Video_Memory() < (g_ScreenWidth * g_ScreenHeight) || !(hwcaps & HWCAPS_BLT)
-                || (hwcaps & HWCAPS_NOHARDWARE) || !VideoBackBufferAllowed) {
+            if (Get_Video_Memory() < (g_ScreenWidth * g_ScreenHeight) || !(hwcaps & VIDEO_BLITTER)
+                || (hwcaps & VIDEO_NO_HARDWARE_ASSIST) || !VideoBackBufferAllowed) {
                 g_hiddenPage.Init(g_ScreenWidth, g_ScreenHeight, 0, 0, GBC_NONE);
             } else {
                 g_hiddenPage.Init(g_ScreenWidth, g_ScreenHeight, 0, 0, GBC_VIDEO_MEM);
