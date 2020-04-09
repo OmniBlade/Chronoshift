@@ -111,6 +111,7 @@
 #include "toggle.h"
 #include "unit.h"
 #include "unittype.h"
+#include "unvqbuff.h"
 #include "version.h"
 #include "vessel.h"
 #include "vesseltype.h"
@@ -1182,6 +1183,10 @@ void Setup_Hooks()
     Hook_Function(0x005D8AD8, &ADPCM_Stream_Init);
     Hook_Function(0x005D8B15, &ADPCM_Decompress);
     Hook_Function(0x005E0377, &ADPCM_Decompress); // Optimised for mono 16bit in original code.
+
+    // unvqbuff.c
+    Hook_Function(0x005E0F2C, &UnVQ_4x2);
+    Hook_Function(0x005E0FC6, &UnVQ_4x4);
 #endif
 }
 

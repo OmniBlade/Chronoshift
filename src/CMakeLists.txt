@@ -11,6 +11,7 @@ set(GAMEENGINE_INCLUDES
     game/platform
     game/ui
     game/util
+    game/vqa
 )
 
 set(HOOKER_SRC hooker/dllmain.cpp hooker/hooker.cpp hooker/setupglobals.cpp hooker/setuphooks.cpp)
@@ -262,6 +263,7 @@ set(GAMEENGINE_SRC
     game/ui/trigauge.cpp
     game/ui/toggle.cpp
     game/ui/msgbox.cpp
+    game/vqa/unvqbuff.c
 )
 
 
