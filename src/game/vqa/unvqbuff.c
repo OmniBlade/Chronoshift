@@ -15,8 +15,6 @@
  */
 #include "unvqbuff.h"
 
-// Big thanks to peterkohaut from ScummVM team who did a reimplementaiont of the original assembly code.
-
 void __cdecl UnVQ_4x2(
     uint8_t *codebook, uint8_t *pointers, uint8_t *buffer, unsigned blocks_per_row, unsigned num_rows, unsigned buff_width)
 {
