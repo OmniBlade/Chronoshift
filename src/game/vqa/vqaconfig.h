@@ -1,4 +1,18 @@
-
+/**
+ * @file
+ *
+ * @author CCHyper
+ * @author tomsons26
+ *
+ * @brief  VQA player configuration.
+ *
+ * @copyright Chronoshift is free software: you can redistribute it and/or
+ *            modify it under the terms of the GNU General Public License
+ *            as published by the Free Software Foundation, either version
+ *            2 of the License, or (at your option) any later version.
+ *            A full copy of the GNU General Public License can be found in
+ *            LICENSE
+ */
 #pragma once
 
 #ifndef VQACONFIG_H
@@ -14,15 +28,15 @@
 
 enum VQAOptionEnum
 {
-    VQA_OPTION_SOUND_ENABLED = 1 << 0, // confirmed
-    VQA_OPTION_SINGLESTEP = 1 << 1, // confirmed
-    VQA_OPTION_MONO_OUTPUT = 1 << 2, // confirmed
-    VQA_OPTION_8 = 1 << 3, // In ScummVM Blade Runner VQA_SETTINGS_DONT_SET_PALETTE
-    VQA_OPTION_SLOW_PALETTE = 1 << 4, // confirmed
-    VQA_OPTION_32 = 1 << 5, // In ScummVM Blade Runner VQA_SETTINGS_LOOPING
-    VQA_SETTINGS_ALTERNATIVE_AUDIO = 1 << 6, // confirmed
+    VQA_OPTION_SOUND_ENABLED = 1 << 0,
+    VQA_OPTION_SINGLESTEP = 1 << 1,
+    VQA_OPTION_MONO_OUTPUT = 1 << 2,
+    VQA_OPTION_8 = 1 << 3,
+    VQA_OPTION_SLOW_PALETTE = 1 << 4,
+    VQA_OPTION_32 = 1 << 5,
+    VQA_SETTINGS_ALTERNATIVE_AUDIO = 1 << 6,
     VQA_OPTION_128 = 1 << 7,
-    VQA_OPTION_256 = 1 << 8, // In ScummVM Blade Runner VQA_SETTINGS_BUFFERING
+    VQA_OPTION_256 = 1 << 8,
     VQA_OPTION_512 = 1 << 9,
 };
 
