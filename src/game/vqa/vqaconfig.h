@@ -21,6 +21,9 @@
 #include "always.h"
 
 #ifdef BUILD_WITH_DSOUND
+#ifdef GAME_DLL
+#define DIRECTSOUND_VERSION 0x0600 // Direct Sound Version 6.0
+#endif
 #include <mmsystem.h>
 
 #include <dsound.h>
