@@ -1192,6 +1192,11 @@ void Setup_Hooks()
     // vqaadpcm.cpp
     Hook_Function(0x005DAD34, &VQAADPCM_Stream_Init);
     Hook_Function(0x005DB1E4, &VQAADPCM_Decompress);
+
+    // vqapalette.cpp
+    Hook_Function(0x005B3AE0, &VQA_Flag_To_Set_Palette);
+    Hook_Function(0x005B3B44, &VQA_SetPalette);
+    Hook_Function(0x005B3B04, &VQA_Check_VQ_Palette_Set);
 #endif
 }
 

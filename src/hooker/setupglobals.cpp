@@ -653,3 +653,9 @@ CarryoverClass *&g_Carryover = Make_Global<CarryoverClass*>(0x0067F2AC);
 //ego.cpp
 class EgoClass;
 DynamicVectorClass<EgoClass *> &g_EgoList = Make_Global<DynamicVectorClass<EgoClass *> >(0x00658830);
+
+// vqapalette.cpp
+uint8_t *&VQPalette = Make_Global<uint8_t *>(0x006A173C);
+int &VQNumBytes = Make_Global<int>(0x006A1740);
+BOOL &VQSlowpal = Make_Global<BOOL>(0x006A1744);
+BOOL &VQPaletteChange = Make_Global<BOOL>(0x006A1748);

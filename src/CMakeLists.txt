@@ -266,6 +266,7 @@ set(GAMEENGINE_SRC
     game/vqa/unvqbuff.c
     game/vqa/vqaadpcm.cpp
     game/vqa/vqaconfig.cpp
+    game/vqa/vqapalette.cpp
     game/vqa/vqaver.cpp
 )
 
