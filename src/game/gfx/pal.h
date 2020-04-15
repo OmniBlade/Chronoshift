@@ -26,5 +26,6 @@ extern uint8_t g_CurrentPalette[];
 #endif
 
 void Set_Palette(void *pal);
+void Increase_Palette_Luminance(uint8_t *pal, int r, int g, int b, int max);
 
 #endif // PAL_H
