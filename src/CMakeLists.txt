@@ -264,6 +264,7 @@ set(GAMEENGINE_SRC
     game/ui/toggle.cpp
     game/ui/msgbox.cpp
     game/vqa/unvqbuff.c
+    game/vqa/vqaadpcm.cpp
     game/vqa/vqaconfig.cpp
 )
 

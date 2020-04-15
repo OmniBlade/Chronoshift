@@ -116,6 +116,7 @@
 #include "vessel.h"
 #include "vesseltype.h"
 #include "vortex.h"
+#include "vqaadpcm.h"
 #include "wsa.h"
 #include "xordelta.h"
 #include <malloc.h>
@@ -1187,6 +1188,10 @@ void Setup_Hooks()
     // unvqbuff.c
     Hook_Function(0x005E0F2C, &UnVQ_4x2);
     Hook_Function(0x005E0FC6, &UnVQ_4x4);
+
+    // vqaadpcm.cpp
+    Hook_Function(0x005DAD34, &VQAADPCM_Stream_Init);
+    Hook_Function(0x005DB1E4, &VQAADPCM_Decompress);
 #endif
 }
 
