@@ -117,6 +117,7 @@
 #include "vesseltype.h"
 #include "vortex.h"
 #include "vqaadpcm.h"
+#include "vqapalette.h"
 #include "wsa.h"
 #include "xordelta.h"
 #include <malloc.h>
