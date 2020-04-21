@@ -60,7 +60,12 @@ enum VQAAudioFlags
 };
 
 DEFINE_ENUMERATION_BITWISE_OPERATORS(VQAAudioFlags);
+
+#ifdef GAME_DLL
 extern int &g_AudioFlags;
+#else
+extern int g_AudioFlags;
+#endif
 
 struct VQAAudio
 {
@@ -103,7 +108,7 @@ struct VQAAudio
 int VQA_StartTimerInt(VQAHandle *handle, int a2);
 void VQA_StopTimerInt(VQAHandle *handle);
 
-int VQA_OpenAudio(VQAHandle *handle, HWND hWnd);
+int VQA_OpenAudio(VQAHandle *handle, void *hwnd);
 void VQA_CloseAudio(VQAHandle *handle);
 
 int VQA_StartAudio(VQAHandle *handle);
