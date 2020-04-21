@@ -56,41 +56,41 @@ typedef int (*EventHandlerFuncPtr)(int mode, uint8_t *pal, int pal_size);
 
 struct VQAConfig
 {
-    DrawerCallbackFuncPtr DrawerCallback;
-    EventHandlerFuncPtr EventHandler;
-    int NotifyFlags;
-    int Vmode;
-    int VBIBit;
-    uint8_t *ImageBuf;
-    int ImageWidth;
-    int ImageHeight;
-    int X1;
-    int Y1;
-    int FrameRate;
-    int DrawRate;
-    int TimerMethod;
-    int DrawFlags;
-    int OptionFlags; // VQAOptionEnum
-    int NumFrameBufs;
-    int NumCBBufs;
+    DrawerCallbackFuncPtr m_DrawerCallback;
+    EventHandlerFuncPtr m_EventHandler;
+    int m_NotifyFlags;
+    int m_VMode;
+    int m_VBIBit;
+    uint8_t *m_ImageBuf;
+    int m_ImageWidth;
+    int m_ImageHeight;
+    int m_X1;
+    int m_Y1;
+    int m_FrameRate;
+    int m_DrawRate;
+    int m_TimerMethod;
+    int m_DrawFlags;
+    int m_OptionFlags; // VQAOptionEnum
+    int m_NumFrameBufs;
+    int m_NumCBBufs;
 #ifdef BUILD_WITH_DSOUND
-    LPDIRECTSOUND SoundObject;
-    LPDIRECTSOUNDBUFFER SoundBuffer;
+    LPDIRECTSOUND m_SoundObject;
+    LPDIRECTSOUNDBUFFER m_SoundBuffer;
 #endif
-    void *VocFile;
-    uint8_t *AudioBuf;
-    unsigned AudioBufSize;
-    int AudioRate;
-    int Volume;
-    int HMIBufSize;
-    int DigiHandle;
-    int DigiCard;
-    int DigiPort;
-    int DigiIRQ;
-    int DigiDMA;
-    int Language; // TODO: correct type
-    void *CapFont; // TODO: correct type
-    void *EVAFont; // TODO: correct type
+    void *m_VocFile;
+    uint8_t *m_AudioBuf;
+    unsigned m_AudioBufSize;
+    int m_AudioRate;
+    int m_Volume;
+    int m_HMIBufSize;
+    int m_DigiHandle;
+    int m_DigiCard;
+    int m_DigiPort;
+    int m_DigiIRQ;
+    int m_DigiDMA;
+    int m_Language; // TODO: correct type
+    void *m_CapFont; // TODO: correct type
+    void *m_EVAFont; // TODO: correct type
 };
 
 void VQA_INIConfig(VQAConfig *config);
