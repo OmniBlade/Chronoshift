@@ -49,7 +49,7 @@ VQAConfig _defaultconfig = {
 #endif
     nullptr,          // VocFile
     nullptr,          // AudioBuf
-    -1,               // AudioBufSize
+    (unsigned)-1,               // AudioBufSize
     -1,               // AudioRate
     255,              // Volume
     8192,             // HMIBufSize
