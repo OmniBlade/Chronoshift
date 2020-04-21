@@ -265,6 +265,7 @@ set(GAMEENGINE_SRC
     game/ui/msgbox.cpp
     game/vqa/unvqbuff.c
     game/vqa/vqaadpcm.cpp
+    game/vqa/vqaaudio.cpp
     game/vqa/vqaconfig.cpp
     game/vqa/vqapalette.cpp
     game/vqa/vqaver.cpp

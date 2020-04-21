@@ -659,3 +659,20 @@ uint8_t *&VQPalette = Make_Global<uint8_t *>(0x006A173C);
 int &VQNumBytes = Make_Global<int>(0x006A1740);
 BOOL &VQSlowpal = Make_Global<BOOL>(0x006A1744);
 BOOL &VQPaletteChange = Make_Global<BOOL>(0x006A1748);
+
+// vqatask.cpp
+BOOL &VQAMovieDone = Make_Global<BOOL>(0x006B148C);
+
+// vqaaudio.cpp
+struct VQAHandle;
+int &g_AudioFlags = Make_Global<int>(0x006B1948);
+// int TimerSysCount;
+int &g_TimerIntCount = Make_Global<int>(0x006B1950);
+MMRESULT &g_VQATimer = Make_Global<MMRESULT>(0x006B1954);
+int &g_TimerMethod = Make_Global<int>(0x006B1958);
+int &g_VQATickCount = Make_Global<int>(0x006B195C);
+int &g_TickOffset = Make_Global<int>(0x006B1960);
+int &g_SuspendAudioCallback = Make_Global<int>(0x006B1964);
+int &g_VQAAudioPaused = Make_Global<int>(0x006B1968);
+// HANDLE GlobalVQAAudioMutex;
+VQAHandle *&g_AudioVQAHandle = Make_Global<VQAHandle *>(0x006B1944);
