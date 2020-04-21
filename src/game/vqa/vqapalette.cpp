@@ -16,6 +16,9 @@
 #include "vqapalette.h"
 #include "interpolate.h"
 #include "pal.h"
+#include <cstring>
+
+using std::memcpy;
 
 #ifndef GAME_DLL
 uint8_t *VQPalette;
