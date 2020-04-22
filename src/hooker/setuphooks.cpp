@@ -117,6 +117,7 @@
 #include "vesseltype.h"
 #include "vortex.h"
 #include "vqaadpcm.h"
+#include "vqaaudio.h"
 #include "vqapalette.h"
 #include "wsa.h"
 #include "xordelta.h"
@@ -1198,6 +1199,18 @@ void Setup_Hooks()
     Hook_Function(0x005B3AE0, &VQA_Flag_To_Set_Palette);
     Hook_Function(0x005B3B44, &VQA_SetPalette);
     Hook_Function(0x005B3B04, &VQA_Check_VQ_Palette_Set);
+
+    // vqaaudio.cpp
+    Hook_Function(0x005CB320, &VQA_StartTimerInt);
+    Hook_Function(0x005CB378, &VQA_StopTimerInt);
+    Hook_Function(0x005CB3CC, &VQA_OpenAudio);
+    Hook_Function(0x005CB598, &VQA_CloseAudio);
+    Hook_Function(0x005CB618, &VQA_StartAudio);
+    Hook_Function(0x005CB8C4, &VQA_StopAudio);
+    Hook_Function(0x005CB940, &VQA_CopyAudio);
+    Hook_Function(0x005CBE08, &VQA_SetTimer);
+    Hook_Function(0x005CBE70, &VQA_GetTime);
+    Hook_Function(0x005CC060, &VQA_TimerMethod);
 #endif
 }
 
