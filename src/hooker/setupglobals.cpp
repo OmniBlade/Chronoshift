@@ -84,7 +84,7 @@ uint8_t *g_ColorXlat = Make_Pointer<uint8_t>(0x00609BC8);
 uint8_t *byte_608988 = Make_Pointer<uint8_t>(0x00609BD8);
 
 // interpolate.cpp
-uint8_t *g_PaletteInterpolationTable = reinterpret_cast<uint8_t *>(0x00691734);
+ARRAY_DEF(0x00691734, uint8_t, g_PaletteInterpolationTable, 65536);
 BOOL &g_PalettesRead = Make_Global<BOOL>(0x00655DA0);
 int &g_PaletteCounter = Make_Global<int>(0x00655DA4);
 int &g_InterpolationMode = Make_Global<int>(0x006A1738);
