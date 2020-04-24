@@ -75,9 +75,10 @@ BOOL Move_HMI_Audio_Block_To_Direct_Sound_Buffer()
 
     memcpy(ptr1, &audio->m_Buffer[audio->m_PlayPosition], config->m_HMIBufSize);
     audio->m_PrimaryBufferPtr->Unlock(ptr1, bytes1, ptr2, bytes2);
+    audio->field_B8 = audio->field_B0;
     audio->field_B0 += config->m_HMIBufSize;
 
-    if (audio->field_B0 >= audio->field_AC) {
+    if (audio->field_B0 >= audio->m_BuffBytes) {
         audio->field_B0 = 0;
     }
 
@@ -100,7 +101,7 @@ BOOL Move_HMI_Audio_Block_To_Direct_Sound_Buffer()
 
     audio->m_IsLoaded[audio->field_10] = 0;
     audio->m_PlayPosition += config->m_HMIBufSize;
-    audio->field_10 = audio->field_10 + 1;
+    ++audio->field_10;
 
     if (audio->m_PlayPosition >= config->m_AudioBufSize) {
         audio->m_PlayPosition = 0;
@@ -145,10 +146,10 @@ void __stdcall VQA_AudioCallback(UINT uID, UINT uMsg, DWORD_PTR dwUser, DWORD_PT
             }
 
             if (playCursor >= audio->field_B0) {
-                if (((audio->field_AC * 3) / 4) < playCursor && audio->field_B0 <= 0) {
+                if (((audio->m_BuffBytes * 3) / 4) < playCursor && audio->field_B0 <= 0) {
                     restart = true;
                 }
-            } else if ((audio->field_B0 - playCursor) <= (audio->field_AC / 4)) {
+            } else if ((audio->field_B0 - playCursor) <= (audio->m_BuffBytes / 4)) {
                 restart = true;
             }
 
@@ -166,7 +167,7 @@ int VQA_StartTimerInt(VQAHandle *handle, int a2)
     VQAData *data = handle->m_VQABuf;
     VQAAudio *audio = &data->m_Audio;
 
-    if (!(g_AudioFlags & 0x30)) {
+    if (!(g_AudioFlags & VQA_AUDIO_FLAG_INTERRUPT_TIMER)) {
         g_VQATimer = timeSetEvent(TIMER_DELAY,
             TIMER_RESOLUTION,
             VQA_SoundTimerCallback,
@@ -193,11 +194,11 @@ void VQA_StopTimerInt(VQAHandle *handle)
         --g_TimerIntCount;
     }
 
-    if ((g_AudioFlags & 0x30) == 0x10 && g_TimerIntCount == 0) {
+    if ((g_AudioFlags & VQA_AUDIO_FLAG_INTERRUPT_TIMER) == VQA_AUDIO_FLAG_UNKNOWN016 && g_TimerIntCount == 0) {
         timeKillEvent(g_VQATimer);
     }
 
-    g_AudioFlags &= 0xCF;
+    g_AudioFlags &= ~VQA_AUDIO_FLAG_INTERRUPT_TIMER;
 #endif
 }
 
@@ -304,8 +305,8 @@ void VQA_CloseAudio(VQAHandle *handle)
     VQAAudio *audio = &data->m_Audio;
 
     VQA_StopAudio(handle);
-    g_AudioFlags &= 0xF3;
-    audio->m_Flags &= 0xF3;
+    g_AudioFlags &= ~(VQA_AUDIO_FLAG_UNKNOWN004 | VQA_AUDIO_FLAG_UNKNOWN008);
+    audio->m_Flags &= ~(VQA_AUDIO_FLAG_UNKNOWN004 | VQA_AUDIO_FLAG_UNKNOWN008);
 
     if (audio->field_C0) {
         config->m_SoundBuffer->Stop();
@@ -320,8 +321,8 @@ void VQA_CloseAudio(VQAHandle *handle)
         audio->field_BC = 0;
     }
 
-    audio->m_Flags &= 0xFC;
-    g_AudioFlags &= 0xBC;
+    audio->m_Flags &= ~(VQA_AUDIO_FLAG_UNKNOWN001 | VQA_AUDIO_FLAG_UNKNOWN002);
+    g_AudioFlags &= ~(VQA_AUDIO_FLAG_UNKNOWN001 | VQA_AUDIO_FLAG_UNKNOWN002 | VQA_AUDIO_FLAG_AUDIO_DMA_TIMER);
 #endif
 }
 
@@ -334,22 +335,25 @@ int VQA_StartAudio(VQAHandle *handle)
 
     g_AudioVQAHandle = handle;
 
-    if (g_AudioFlags & 0x40) {
+    // If the timer is already set up, abort.
+    if (g_AudioFlags & VQA_AUDIO_FLAG_AUDIO_DMA_TIMER) {
         return -1;
     }
 
+    // If its already open, close the DSound buffer
     if (audio->m_PrimaryBufferPtr != nullptr) {
+        audio->m_PrimaryBufferPtr->Stop();
         audio->m_PrimaryBufferPtr->Release();
         audio->m_PrimaryBufferPtr = nullptr;
     }
 
-    audio->field_AC = config->m_HMIBufSize * 4;
+    audio->m_BuffBytes = config->m_HMIBufSize * 4;
 
     // Set up DSBUFFERDESC structure.
     memset(&audio->m_BufferDesc, 0, sizeof(audio->m_BufferDesc));
     audio->m_BufferDesc.dwSize = sizeof(audio->m_BufferDesc);
     audio->m_BufferDesc.dwFlags = DSBCAPS_CTRLVOLUME; // Buffer flags
-    audio->m_BufferDesc.dwBufferBytes = audio->field_AC;
+    audio->m_BufferDesc.dwBufferBytes = audio->m_BuffBytes;
     audio->m_BufferDesc.lpwfxFormat = &audio->m_BuffFormat;
 
     // Set up buffer format structure.
@@ -359,10 +363,13 @@ int VQA_StartAudio(VQAHandle *handle)
     audio->m_BuffFormat.wBitsPerSample = audio->m_BitsPerSample;
     audio->m_BuffFormat.wFormatTag = WAVE_FORMAT_PCM; // Format code
     audio->m_BuffFormat.nBlockAlign =
-        audio->m_BuffFormat.nChannels * audio->m_BuffFormat.wBitsPerSample / 8; // Data block size (bytes)
+        audio->m_BuffFormat.nChannels * (audio->m_BuffFormat.wBitsPerSample / 8); // Data block size (bytes)
     audio->m_BuffFormat.nAvgBytesPerSec = audio->m_BuffFormat.nBlockAlign * audio->m_BuffFormat.nSamplesPerSec;
-
-    if (config->m_SoundBuffer->SetFormat(&audio->m_BuffFormat) != DS_OK) {
+    config->m_SoundObject->CreateSoundBuffer(&audio->m_BufferDesc, &audio->m_PrimaryBufferPtr, nullptr);
+    config->m_SoundBuffer->Stop();
+    
+    if (config->m_SoundBuffer->SetFormat(&audio->m_BuffFormat) != DS_OK)
+    {
         if (audio->m_BitsPerSample == 16) {
             audio->m_BuffFormat.wBitsPerSample = 8;
 
@@ -397,9 +404,9 @@ int VQA_StartAudio(VQAHandle *handle)
     audio->m_PrimaryBufferPtr->SetVolume(-(1000 * (0x8000 - (config->m_Volume * 128)) / 0x8000));
     timeBeginPeriod(TIMER_DELAY);
     audio->m_SoundTimerHandle = timeSetEvent(
-        TIMER_DELAY, TIMER_RESOLUTION, VQA_SoundTimerCallback, (DWORD_PTR)nullptr, TIME_CALLBACK_FUNCTION | TIME_PERIODIC);
-    audio->m_Flags |= 0x40;
-    g_AudioFlags |= 0x40;
+        TIMER_DELAY, TIMER_RESOLUTION, VQA_AudioCallback, (DWORD_PTR)nullptr, TIME_CALLBACK_FUNCTION | TIME_PERIODIC);
+    audio->m_Flags |= VQA_AUDIO_FLAG_AUDIO_DMA_TIMER;
+    g_AudioFlags |= VQA_AUDIO_FLAG_AUDIO_DMA_TIMER;
 #endif
     return 0;
 }
@@ -423,8 +430,8 @@ void VQA_StopAudio(VQAHandle *handle)
             audio->m_PrimaryBufferPtr = nullptr;
         }
 
-        audio->m_Flags &= 0xBF;
-        g_AudioFlags &= 0xBF;
+        audio->m_Flags &= ~VQA_AUDIO_FLAG_AUDIO_DMA_TIMER;
+        g_AudioFlags &= ~VQA_AUDIO_FLAG_AUDIO_DMA_TIMER;
     }
 
     g_AudioVQAHandle = nullptr;
@@ -442,7 +449,11 @@ int VQA_CopyAudio(VQAHandle *handle)
         if (audio->m_Buffer != nullptr) {
             if (audio->m_TempBufSize > 0) {
                 int current_block = audio->m_AudBufPos / config->m_HMIBufSize;
-                int next_block = std::min(audio->m_TempBufSize + current_block, audio->m_NumAudBlocks);
+                int next_block = (audio->m_TempBufSize + audio->m_AudBufPos) / config->m_HMIBufSize;
+
+                if (next_block > audio->m_NumAudBlocks) {
+                    next_block -= audio->m_NumAudBlocks;
+                }
 
                 if (audio->m_IsLoaded[next_block] == 1) {
                     return -10;
@@ -563,10 +574,10 @@ unsigned VQA_GetTime(VQAHandle *handle)
             if (this_lastchunkposition > 0) {
                 bytes = play_cursor - audio->field_B8 + v5;
             } else {
-                if ((3 * audio->field_AC) >> 2 >= play_cursor) {
+                if ((3 * audio->m_BuffBytes) >> 2 >= play_cursor) {
                     bytes = play_cursor - audio->field_B8 + v5;
                 } else {
-                    bytes = v5 - (audio->field_AC - play_cursor);
+                    bytes = v5 - (audio->m_BuffBytes - play_cursor);
                 }
             }
         }
@@ -575,8 +586,8 @@ unsigned VQA_GetTime(VQAHandle *handle)
     }
 
     this_totalbytes = bytes;
-    int v0 =
-        g_TickOffset + 60 * (bytes / audio->m_BuffFormat.nChannels / (audio->m_BuffFormat.wBitsPerSample / 8)) / audio->m_SampleRate;
+    int v0 = g_TickOffset
+        + 60 * (bytes / audio->m_BuffFormat.nChannels / (audio->m_BuffFormat.wBitsPerSample / 8)) / audio->m_SampleRate;
 
     if (v0 <= 100 || (ticks = last_ticks, v0 - last_ticks <= 20)) {
         last_chunksmovedtoaudiobuffer = this_chunksmovedtoaudiobuffer;
@@ -585,7 +596,7 @@ unsigned VQA_GetTime(VQAHandle *handle)
         last_playcursor = this_playcursor;
         last_hmibufsize = this_hmibufsize;
         last_lastchunkposition = this_lastchunkposition;
-    } else if (VQA_TimerMethod() == 3) {
+    } else if (VQA_TimerMethod() == VQA_AUDIO_TIMER_METHOD_DMA) {
         ++last_ticks;
         result_time = ticks + 1;
     }
