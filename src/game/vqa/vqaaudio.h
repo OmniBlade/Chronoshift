@@ -97,7 +97,7 @@ struct VQAAudio
     DSBUFFERDESC m_BufferDesc;
 #endif
     int16_t field_AA;
-    unsigned field_AC; // HMIBufSize * 4 set field_AC, and field_AC sets dwBufferBytes.
+    unsigned m_BuffBytes; // HMIBufSize * 4 set field_AC, and field_AC sets dwBufferBytes.
     unsigned field_B0; // current chunk position or offset?
     int field_B4; // use to set ChunksMovedToAudioBuffer in VQA_GetTime
     int field_B8; // use to set LastChunkPosition in VQA_GetTime
