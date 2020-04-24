@@ -116,7 +116,7 @@ void VQA_StopAudio(VQAHandle *handle);
 
 int VQA_CopyAudio(VQAHandle *handle);
 
-void VQA_SetTimer(VQAHandle *handle, int time, unsigned method);
+void VQA_SetTimer(VQAHandle *handle, int time, int method);
 unsigned VQA_GetTime(VQAHandle *handle);
 int VQA_TimerMethod();
 
