@@ -451,7 +451,7 @@ int VQA_CopyAudio(VQAHandle *handle)
                 int current_block = audio->m_AudBufPos / config->m_HMIBufSize;
                 int next_block = (audio->m_TempBufSize + audio->m_AudBufPos) / config->m_HMIBufSize;
 
-                if (next_block > audio->m_NumAudBlocks) {
+                if ((unsigned)next_block >= audio->m_NumAudBlocks) {
                     next_block -= audio->m_NumAudBlocks;
                 }
 
@@ -491,7 +491,7 @@ int VQA_CopyAudio(VQAHandle *handle)
     return 0;
 }
 
-void VQA_SetTimer(VQAHandle *handle, int time, unsigned method)
+void VQA_SetTimer(VQAHandle *handle, int time, int method)
 {
 #ifdef BUILD_WITH_DSOUND
     if (method == -1) {
@@ -502,7 +502,7 @@ void VQA_SetTimer(VQAHandle *handle, int time, unsigned method)
         } else {
             method = 1;
         }
-
+    } else {
         if (!(g_AudioFlags & VQA_AUDIO_FLAG_AUDIO_DMA_TIMER) && method == 3) {
             method = 2;
         }
@@ -512,7 +512,8 @@ void VQA_SetTimer(VQAHandle *handle, int time, unsigned method)
         }
     }
 
-    g_TimerMethod = 0;
+    g_TimerMethod = method;
+    g_TickOffset = 0;
     g_TickOffset = time - VQA_GetTime(handle);
 #endif
 }
@@ -556,40 +557,41 @@ unsigned VQA_GetTime(VQAHandle *handle)
         }
 
         case VQA_AUDIO_TIMER_METHOD_DMA: {
+            this_chunksmovedtoaudiobuffer = audio->field_B4;
+            this_hmibufsize = config->m_HMIBufSize;
+
+            if (audio->m_PrimaryBufferPtr != nullptr) {
+                if (audio->m_PrimaryBufferPtr->GetCurrentPosition(&play_cursor, &write_offset) != DS_OK) {
+                    bytes = config->m_HMIBufSize * (audio->field_B4 - 1);
+                } else {
+                    int v5 = config->m_HMIBufSize * audio->field_B4;
+                    this_playcursor = play_cursor;
+                    this_lastchunkposition = audio->field_B8;
+
+                    if (this_lastchunkposition > 0) {
+                        bytes = play_cursor - audio->field_B8 + v5;
+                    } else {
+                        if ((3 * audio->m_BuffBytes) >> 2 >= play_cursor) {
+                            bytes = play_cursor - audio->field_B8 + v5;
+                        } else {
+                            bytes = v5 - (audio->m_BuffBytes - play_cursor);
+                        }
+                    }
+                }
+            } else {
+                bytes = config->m_HMIBufSize * (audio->field_B4 - 1);
+            }
+
+            this_totalbytes = bytes;
+            result_time = g_TickOffset
+                + 60 * (bytes / audio->m_BuffFormat.nChannels / (audio->m_BuffFormat.wBitsPerSample / 8))
+                    / audio->m_SampleRate;
+
             break;
         }
     };
 
-    this_chunksmovedtoaudiobuffer = audio->field_B4;
-    this_hmibufsize = config->m_HMIBufSize;
-
-    if (audio->m_PrimaryBufferPtr != nullptr) {
-        if (audio->m_PrimaryBufferPtr->GetCurrentPosition(&play_cursor, &write_offset) != DS_OK) {
-            bytes = config->m_HMIBufSize * (audio->field_B4 - 1);
-        } else {
-            int v5 = config->m_HMIBufSize * audio->field_B4;
-            this_playcursor = play_cursor;
-            this_lastchunkposition = audio->field_B8;
-
-            if (this_lastchunkposition > 0) {
-                bytes = play_cursor - audio->field_B8 + v5;
-            } else {
-                if ((3 * audio->m_BuffBytes) >> 2 >= play_cursor) {
-                    bytes = play_cursor - audio->field_B8 + v5;
-                } else {
-                    bytes = v5 - (audio->m_BuffBytes - play_cursor);
-                }
-            }
-        }
-    } else {
-        bytes = config->m_HMIBufSize * (audio->field_B4 - 1);
-    }
-
-    this_totalbytes = bytes;
-    int v0 = g_TickOffset
-        + 60 * (bytes / audio->m_BuffFormat.nChannels / (audio->m_BuffFormat.wBitsPerSample / 8)) / audio->m_SampleRate;
-
-    if (v0 <= 100 || (ticks = last_ticks, v0 - last_ticks <= 20)) {
+    if (result_time <= 100 || (ticks = last_ticks, result_time - last_ticks <= 20)) {
         last_chunksmovedtoaudiobuffer = this_chunksmovedtoaudiobuffer;
         last_totalbytes = this_totalbytes;
         last_ticks = this_ticks;
