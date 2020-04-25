@@ -267,6 +267,8 @@ set(GAMEENGINE_SRC
     game/vqa/vqaadpcm.cpp
     game/vqa/vqaaudio.cpp
     game/vqa/vqaconfig.cpp
+    game/vqa/vqadrawer.cpp
+    game/vqa/vqaloader.cpp
     game/vqa/vqapalette.cpp
     game/vqa/vqaver.cpp
 )
