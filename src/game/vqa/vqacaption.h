@@ -61,10 +61,6 @@ struct CaptionList
     CaptionNode *m_Next;
 };
 
-CaptionInfo *VQA_OpenCaptions(void *a1, void *font);
-void VQA_CloseCaptions(CaptionInfo *info);
-void VQA_DoCaptions(CaptionInfo *info, unsigned a2);
-CaptionNode *VQA_AddCaptionNode(CaptionList *list, CaptionText *text);
-void VQA_RemCaptionNode(CaptionList *list, CaptionNode *node);
+// TODO: Caption handling is not present in RA, to research and implement later if possible.
 
 #endif // VQACAPTION_H
