@@ -1211,6 +1211,9 @@ void Setup_Hooks()
     Hook_Function(0x005CBE08, &VQA_SetTimer);
     Hook_Function(0x005CBE70, &VQA_GetTime);
     Hook_Function(0x005CC060, &VQA_TimerMethod);
+
+    // vqadrawer.cpp
+
 #endif
 }
 

@@ -159,7 +159,6 @@ void VQA_SetDrawRect(VQAHandle *handle, unsigned width, unsigned height, int xpo
 
 void VQA_SetDrawBuffer(VQAHandle *handle, uint8_t *buffer, unsigned width, unsigned height, int xpos, int ypos)
 {
-    int v10;
     VQADrawer *drawer = &handle->m_VQABuf->m_Drawer;
     unsigned flags = handle->m_Config.m_DrawFlags & 0x30;
 
@@ -167,37 +166,33 @@ void VQA_SetDrawBuffer(VQAHandle *handle, uint8_t *buffer, unsigned width, unsig
     drawer->m_ImageWidth = width;
     drawer->m_ImageHeight = height;
 
-    if (xpos != -1 || ypos != -1) {
-        if (flags < 1) {
-            goto LABEL_13;
-        }
-
-        v10 = (flags - 1) - 31;
-
-        if (v10 == 0) {
-            drawer->m_X1 = width - xpos;
-            drawer->m_Y1 = height - ypos;
-            drawer->m_X2 = drawer->m_X1 - handle->m_Header.m_ImageWidth;
-            drawer->m_Y2 = drawer->m_Y1 - handle->m_Header.m_ImageHeight;
-        } else {
-            if (v10 != 16) {
-            LABEL_13:
-                drawer->m_X1 = xpos;
-                drawer->m_Y1 = ypos;
-                drawer->m_X2 = drawer->m_X1 + handle->m_Header.m_ImageWidth - 1;
-                drawer->m_Y2 = drawer->m_Y1 + handle->m_Header.m_ImageHeight - 1;
-            } else {
-                drawer->m_X1 = xpos;
-                drawer->m_Y1 = height - ypos;
-                drawer->m_X2 = drawer->m_X1 + handle->m_Header.m_ImageWidth - 1;
-                drawer->m_Y2 = drawer->m_Y2 - handle->m_Header.m_ImageHeight - 1;
-            }
-        }
-    } else {
+    if (xpos == -1 || ypos == -1) {
         drawer->m_X1 = (width - handle->m_Header.m_ImageWidth) >> 1;
         drawer->m_Y1 = (height - handle->m_Header.m_ImageHeight) >> 1;
         drawer->m_X2 = drawer->m_X1 + handle->m_Header.m_ImageWidth - 1;
         drawer->m_Y2 = drawer->m_Y1 + handle->m_Header.m_ImageHeight - 1;
+    } else {
+        if (flags == 0) {
+            drawer->m_X1 = xpos;
+            drawer->m_Y1 = ypos;
+            drawer->m_X2 = drawer->m_X1 + handle->m_Header.m_ImageWidth - 1;
+            drawer->m_Y2 = drawer->m_Y1 + handle->m_Header.m_ImageHeight - 1;
+        } else if (flags == 0x20) {
+            drawer->m_X1 = width - xpos;
+            drawer->m_Y1 = height - ypos;
+            drawer->m_X2 = drawer->m_X1 - handle->m_Header.m_ImageWidth;
+            drawer->m_Y2 = drawer->m_Y1 - handle->m_Header.m_ImageHeight;
+        } else if (flags == 0x30) {
+            drawer->m_X1 = xpos;
+            drawer->m_Y1 = ypos;
+            drawer->m_X2 = drawer->m_X1 + handle->m_Header.m_ImageWidth - 1;
+            drawer->m_Y2 = drawer->m_Y1 + handle->m_Header.m_ImageHeight - 1;
+        } else {
+            drawer->m_X1 = xpos;
+            drawer->m_Y1 = height - ypos;
+            drawer->m_X2 = drawer->m_X1 + handle->m_Header.m_ImageWidth - 1;
+            drawer->m_Y2 = drawer->m_Y2 - handle->m_Header.m_ImageHeight - 1;
+        }
     }
 
     drawer->m_ScreenOffset = drawer->m_X1 + drawer->m_Y1 * width;
@@ -288,7 +283,7 @@ int VQA_SelectFrame(VQAHandle *handle)
         if (curframe->m_FrameNum > desiredframe) {
             return VQAERR_NOT_TIME;
         }
-    } else if (60 / handle->m_Config.m_DrawRate > curtime - vqabuf->m_Drawer.m_LastTime) {
+    } else if (60u / handle->m_Config.m_DrawRate > curtime - vqabuf->m_Drawer.m_LastTime) {
         return VQAERR_NOT_TIME;
     }
 
@@ -298,7 +293,7 @@ int VQA_SelectFrame(VQAHandle *handle)
             result = VQAERR_NONE;
 
         } else {
-            while (1) {
+            while (true) {
                 if (!(curframe->m_Flags & 1)) {
                     return VQAERR_NOBUFFER;
                 }
@@ -347,19 +342,19 @@ void VQA_PrepareFrame(VQAData *vqabuf)
     VQAFrameNode *curframe = vqabuf->m_Drawer.m_CurFrame;
     VQACBNode *codebook = curframe->m_Codebook;
 
-    if (codebook->m_Flags & 2) {
+    if (codebook->m_Flags & 0x02) {
         LCW_Uncomp(&codebook->m_Buffer[codebook->m_CBOffset], codebook->m_Buffer, vqabuf->m_MaxCBSize);
-        codebook->m_Flags &= 0xFFFFFFFD;
+        codebook->m_Flags &= ~0x02;
     }
 
-    if (curframe->m_Flags & 8) {
+    if (curframe->m_Flags & 0x08) {
         curframe->m_PaletteSize =
             LCW_Uncomp(&curframe->m_Palette[curframe->m_PalOffset], curframe->m_Palette, vqabuf->m_MaxPalSize);
-        curframe->m_Flags &= 0xFFFFFFF7;
+        curframe->m_Flags &= ~0x08;
     }
 
     if (curframe->m_Flags & 0x10) {
         LCW_Uncomp(&curframe->m_Pointers[curframe->m_PtrOffset], curframe->m_Pointers, vqabuf->m_MaxPtrSize);
-        curframe->m_Flags &= 0xFFFFFFEF;
+        curframe->m_Flags &= ~0x10;
     }
 }
