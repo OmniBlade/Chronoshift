@@ -14,8 +14,8 @@
  *            A full copy of the GNU General Public License can be found in
  *            LICENSE
  */
-#include "audio.h"
 #include "alloc.h"
+#include "audio.h"
 #include "eventhandler.h"
 #include "gbuffer.h"
 #include "globals.h"
@@ -23,8 +23,8 @@
 #include <algorithm>
 #include <cmath>
 
-using std::log;
 using std::exp;
+using std::log;
 
 #ifdef BUILD_WITH_DSOUND
 #define DIRECTSOUND_VERSION 0x0600
@@ -176,6 +176,7 @@ void CALLBACK Sound_Timer_Callback(UINT uID = 0, UINT uMsg = 0, DWORD_PTR dwUser
 int Simple_Copy(void **source, int *ssize, void **alternate, int *altsize, void **dest, int size);
 int Sample_Copy(SampleTrackerType *st, void **source, int *ssize, void **alternate, int *altsize, void *dest, int size,
     SoundCompressType sound_comp, void *trailer, int16_t *trailersize);
+int Convert_HMI_To_Direct_Sound_Volume(int vol);
 
 /**
  * Callback registered to be called periodically to keep buffers topped up with data from each playing sample.

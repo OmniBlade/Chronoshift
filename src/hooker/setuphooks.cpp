@@ -141,6 +141,14 @@ int Simple_Copy(void **source, int *ssize, void **alternate, int *altsize, void 
 int Sample_Copy(SampleTrackerType *st, void **source, int *ssize, void **alternate, int *altsize, void *dest, int size,
     SoundCompressType sound_comp, void *trailer, int16_t *trailersize);
 void Maintenance_Callback();
+void Init_Locked_Data();
+BOOL File_Callback(int16_t id, int16_t *odd, void **buffer, int *size);
+int __cdecl Stream_Sample_Vol(void *buffer, int size, AudioStreamCallback callback, int volume, int handle);
+int File_Stream_Sample(char const *filename, BOOL real_time_start);
+void File_Stream_Preload(int handle);
+int File_Stream_Sample_Vol(const char *filename, int volume, BOOL real_time_start);
+void Sound_Thread(void *a1);
+int Convert_HMI_To_Direct_Sound_Volume(int vol);
 
 void Setup_Hooks()
 {

@@ -19,7 +19,6 @@ set(GAMEENGINE_SRC
     game/main.cpp
     game/startup.cpp
     game/audio/adpcm.cpp
-    game/audio/audio.cpp
     game/common/base64.cpp
     game/common/bitarray.cpp
     game/common/buffer.cpp
@@ -267,6 +266,11 @@ set(GAMEENGINE_SRC
     game/ui/msgbox.cpp
 )
 
+if(USE_OPENAL)
+    list(APPEND GAMEENGINE_SRC game/audio/audio_openal.cpp)
+else()
+    list(APPEND GAMEENGINE_SRC game/audio/audio_dsound.cpp)
+endif()
 
 if(CMAKE_CONFIGURATION_TYPES)
     # Glob all the header files together to add to the project for msvc/xcode.

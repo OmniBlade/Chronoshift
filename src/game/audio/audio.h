@@ -60,8 +60,6 @@ enum SoundCompressType
 typedef void (*AudioFocusCallback)();
 typedef BOOL (*AudioStreamCallback)(int16_t, int16_t *, void **, int *);
 
-void Init_Locked_Data();
-BOOL File_Callback(int16_t id, int16_t *odd, void **buffer, int *size);
 int __cdecl Stream_Sample_Vol(void *buffer, int size, AudioStreamCallback callback, int volume, int handle);
 int File_Stream_Sample(char const *filename, BOOL real_time_start);
 void File_Stream_Preload(int handle);
@@ -71,7 +69,6 @@ void *Load_Sample(char *filename);
 int Load_Sample_Into_Buffer(char *filename, void *buffer, int size);
 int Sample_Read(int handle, void *buffer, int size);
 void Free_Sample(void *sample);
-void Sound_Thread(void *a1);
 BOOL Set_Primary_Buffer_Format();
 int Print_Sound_Error(char *sound_error, void *window);
 BOOL Audio_Init(void *window, int bits_per_sample, BOOL stereo, int rate, BOOL reverse_channels);
@@ -82,7 +79,6 @@ int Is_Sample_Playing(void *sample);
 void Stop_Sample_Playing(void *sample);
 int Get_Free_Sample_Handle(int priority);
 int Play_Sample(void *sample, int priority, int volume, int16_t panloc);
-int Convert_HMI_To_Direct_Sound_Volume(int vol);
 int Play_Sample_Handle(void *a1, int a2, int a3, int16_t a4, int a5);
 void Restore_Sound_Buffers();
 int Set_Sound_Vol(int vol);
