@@ -132,24 +132,6 @@
 #include <dsound.h>
 // clang-format on
 
-struct SampleTrackerType;
-
-// Forward declare some internal audio functions.
-BOOL Attempt_Audio_Restore(LPDIRECTSOUNDBUFFER sound_buffer);
-void CALLBACK Sound_Timer_Callback(UINT uID = 0, UINT uMsg = 0, DWORD_PTR dwUser = 0, DWORD_PTR dw1 = 0, DWORD_PTR dw2 = 0);
-int Simple_Copy(void **source, int *ssize, void **alternate, int *altsize, void **dest, int size);
-int Sample_Copy(SampleTrackerType *st, void **source, int *ssize, void **alternate, int *altsize, void *dest, int size,
-    SoundCompressType sound_comp, void *trailer, int16_t *trailersize);
-void Maintenance_Callback();
-void Init_Locked_Data();
-BOOL File_Callback(int16_t id, int16_t *odd, void **buffer, int *size);
-int __cdecl Stream_Sample_Vol(void *buffer, int size, AudioStreamCallback callback, int volume, int handle);
-int File_Stream_Sample(char const *filename, BOOL real_time_start);
-void File_Stream_Preload(int handle);
-int File_Stream_Sample_Vol(const char *filename, int volume, BOOL real_time_start);
-void Sound_Thread(void *a1);
-int Convert_HMI_To_Direct_Sound_Volume(int vol);
-
 void Setup_Hooks()
 {
 #ifdef __WATCOMC__
@@ -1223,39 +1205,20 @@ void Setup_Hooks()
     Hook_Function(0x005E0377, &ADPCM_Decompress); // Optimised for mono 16bit in original code.
 
     // audio.cpp
-    Hook_Function(0x005D82E8, Init_Locked_Data);
-    Hook_Function(0x005BDE70, File_Callback);
-    Hook_Function(0x005BE170, Stream_Sample_Vol);
-    Hook_Function(0x005BE240, File_Stream_Sample);
-    Hook_Function(0x005BE250, File_Stream_Preload);
     Hook_Function(0x005BE430, File_Stream_Sample_Vol);
     Hook_Function(0x005BE560, Sound_Callback);
-    Hook_Function(0x005BE780, Sample_Read);
-    Hook_Function(0x005BE800, Sound_Timer_Callback);
-    Hook_Function(0x005BE830, Sound_Thread);
-    Hook_Function(0x005BE8D0, Set_Primary_Buffer_Format);
     Hook_Function(0x005BE930, Audio_Init);
     Hook_Function(0x005BED80, Sound_End);
     Hook_Function(0x005BEEA0, Stop_Sample);
     Hook_Function(0x005BEFB0, Sample_Status);
     Hook_Function(0x005BF050, Is_Sample_Playing);
     Hook_Function(0x005BF0A0, Stop_Sample_Playing);
-    Hook_Function(0x005BF0E0, Get_Free_Sample_Handle);
     Hook_Function(0x005BF200, Play_Sample);
-    Hook_Function(0x005BF220, Attempt_Audio_Restore);
-    Hook_Function(0x005BF280, Convert_HMI_To_Direct_Sound_Volume);
-    Hook_Function(0x005BF2E0, Play_Sample_Handle);
-    Hook_Function(0x005BF8E0, Restore_Sound_Buffers);
     Hook_Function(0x005BF920, Set_Sound_Vol);
     Hook_Function(0x005BF940, Set_Score_Vol);
     Hook_Function(0x005BF9B0, Fade_Sample);
     Hook_Function(0x005BFA70, Start_Primary_Sound_Buffer);
     Hook_Function(0x005BFAE0, Stop_Primary_Sound_Buffer);
-    Hook_Function(0x005BFB30, Suspend_Audio_Thread);
-    Hook_Function(0x005BFB60, Resume_Audio_Thread);
-    Hook_Function(0x005D8360, Simple_Copy);
-    Hook_Function(0x005D8440, Sample_Copy);
-    Hook_Function(0x005D8670, Maintenance_Callback);
 
     // vox.cpp
     Hook_Function(0x00426158, Speak);

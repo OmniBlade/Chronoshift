@@ -60,6 +60,22 @@ enum SoundCompressType
 typedef void (*AudioFocusCallback)();
 typedef BOOL (*AudioStreamCallback)(int16_t, int16_t *, void **, int *);
 
+void Sound_Callback();
+int Set_Score_Vol(int vol);
+int Set_Sound_Vol(int vol);
+void Stop_Sample(int sample);
+void Fade_Sample(int sample, int fade);
+int Sample_Status(int sample);
+int File_Stream_Sample_Vol(const char *filename, int volume, BOOL real_time_start);
+void Stop_Primary_Sound_Buffer();
+int Start_Primary_Sound_Buffer(BOOL forced);
+BOOL Audio_Init(void *window, int bits_per_sample, BOOL stereo, int rate, BOOL reverse_channels);
+void Sound_End();
+int Play_Sample(void *sample, int priority, int volume, int16_t panloc);
+int Is_Sample_Playing(void *sample);
+void Stop_Sample_Playing(void *sample);
+
+/*
 int __cdecl Stream_Sample_Vol(void *buffer, int size, AudioStreamCallback callback, int volume, int handle);
 int File_Stream_Sample(char const *filename, BOOL real_time_start);
 void File_Stream_Preload(int handle);
@@ -91,5 +107,6 @@ int Start_Primary_Sound_Buffer(BOOL forced);
 void Stop_Primary_Sound_Buffer();
 void Suspend_Audio_Thread();
 void Resume_Audio_Thread();
+*/
 
 #endif // AUDIO_H
