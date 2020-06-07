@@ -118,6 +118,7 @@
 #include "vortex.h"
 #include "vqaadpcm.h"
 #include "vqaaudio.h"
+#include "vqaloader.h"
 #include "vqapalette.h"
 #include "wsa.h"
 #include "xordelta.h"
@@ -1213,6 +1214,10 @@ void Setup_Hooks()
     Hook_Function(0x005CC060, &VQA_TimerMethod);
 
     // vqadrawer.cpp
+
+    // vqaloader.cpp
+    Hook_Function(0x005C695C, &VQA_LoadFrame);
+    Hook_Function(0x005C5E90, &VQA_Open);
 
 #endif
 }

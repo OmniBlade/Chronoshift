@@ -91,6 +91,7 @@ int VQA_Load_CBFZ(VQAHandle *handle, unsigned iffsize)
     if (handle->m_StreamHandler(handle, ACTION_READ, &loader->m_CurCB->m_Buffer[lcwoffset], (iffsize + 1) & (~1))) {
         return VQAERR_READ;
     }
+
     loader->m_NumPartialCB = 0;
     curcb->m_Flags |= 2u;
     curcb->m_CBOffset = lcwoffset;
@@ -145,6 +146,7 @@ int VQA_Load_CBPZ(VQAHandle *handle, unsigned iffsize)
     }
 
     loader->m_PartialCBSize += (uint16_t)iffsize;
+
     if (handle->m_Header.m_Groupsize == ++loader->m_NumPartialCB) {
         loader->m_NumPartialCB = 0;
         loader->m_PartialCBSize = 0;
@@ -222,7 +224,6 @@ int VQA_Load_SND0(VQAHandle *handle, unsigned iffsize)
     VQAConfig *config = &handle->m_Config;
     VQAData *data = handle->m_VQABuf;
     VQAAudio *audio = &data->m_Audio;
-
     unsigned size_aligned = ((iffsize + 1) & (~1));
 
     if (!(config->m_OptionFlags & 1) || !audio->m_Buffer) {
@@ -325,7 +326,6 @@ int VQA_Load_SND2(VQAHandle *handle, unsigned iffsize)
 {
     VQAAudio *audio = &handle->m_VQABuf->m_Audio;
     VQAConfig *config = &handle->m_Config;
-
     unsigned size_aligned = ((iffsize + 1) & 0xFFFE);
 
     if (!(config->m_OptionFlags & 1) || !audio->m_Buffer) {
@@ -336,9 +336,9 @@ int VQA_Load_SND2(VQAHandle *handle, unsigned iffsize)
         return VQAERR_NONE;
     }
 
-    unsigned decomp_size = size_aligned * (handle->m_VQABuf->m_Audio.m_BitsPerSample / 4);
+    unsigned decomp_size = iffsize * (handle->m_VQABuf->m_Audio.m_BitsPerSample / 4);
 
-    if (decomp_size <= handle->m_VQABuf->m_Audio.m_TempBufLen || handle->m_VQABuf->m_Audio.m_AudBufPos) {
+    if (decomp_size <= handle->m_VQABuf->m_Audio.m_TempBufLen || handle->m_VQABuf->m_Audio.m_AudBufPos != 0) {
         void *buffer = &audio->m_TempBuf[handle->m_VQABuf->m_Audio.m_TempBufLen - size_aligned];
 
         if (handle->m_StreamHandler(handle, ACTION_READ, buffer, size_aligned)) {
@@ -353,7 +353,8 @@ int VQA_Load_SND2(VQAHandle *handle, unsigned iffsize)
         return VQAERR_NONE;
     }
 
-    void *buffer = &audio->m_Buffer[config->m_AudioBufSize] - size_aligned;
+    void *buffer = &audio->m_Buffer[config->m_AudioBufSize - size_aligned];
+
     if (handle->m_StreamHandler(handle, ACTION_READ, buffer, size_aligned)) {
         return VQAERR_READ;
     }
@@ -372,158 +373,176 @@ int VQA_Load_SND2(VQAHandle *handle, unsigned iffsize)
 
 int VQA_Load_VQF(VQAHandle *handle, unsigned frame_iffsize)
 {
-    VQAChunkHeader chunk;
     unsigned bytes_loaded = 0;
     VQAData *data = handle->m_VQABuf;
     VQAFrameNode *curframe = data->m_Loader.m_CurFrame;
     unsigned framesize = (frame_iffsize + 1) & (~1);
     VQADrawer *drawer = &handle->m_VQABuf->m_Drawer;
+    VQAChunkHeader *chunk = &data->m_Chunk;
 
     while (bytes_loaded < framesize) {
-        if (handle->m_StreamHandler(handle, ACTION_READ, &chunk, sizeof(chunk))) {
+        if (handle->m_StreamHandler(handle, ACTION_READ, chunk, sizeof(*chunk))) {
             return VQAERR_EOF;
         }
 
-        unsigned iffsize = (chunk.m_Size << 0x18) & 0xFF000000 | (chunk.m_Size << 8) & 0xFF0000
-            | (chunk.m_Size >> 8) & 0xFF00 | (chunk.m_Size >> 0x18);
+        unsigned iffsize = be32toh(chunk->m_Size);
+        bytes_loaded += ((iffsize + 1) & (~1)) + sizeof(*chunk);
 
-        bytes_loaded += ((iffsize + 1) & (~1)) + 8;
-
-        switch (chunk.m_ID) {
+        switch (chunk->m_ID) {
             // Vector Pointer Table
-            case CHUNK_VPT0: {
+            case CHUNK_VPT0:
                 captainslog_debug("VQA_Load_VQF() - Found VPT0 chunk.\n");
+
                 if (VQA_Load_VPT0(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
 
-            case CHUNK_VPTZ: {
+                break;
+
+            case CHUNK_VPTZ:
                 captainslog_debug("VQA_Load_VQF() - Found VPTZ chunk.\n");
+
                 if (VQA_Load_VPTZ(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
+
+                break;
 
             // Vector Pointer
-            case CHUNK_VPTD: {
+            case CHUNK_VPTD:
                 captainslog_debug("VQA_Load_VQF() - Found VPTD chunk.\n");
-                if (VQA_Load_VPTZ(handle, iffsize)) {
-                    return VQAERR_READ;
-                }
-                continue;
-            }
 
-            case CHUNK_VPTK: {
-                captainslog_debug("VQA_Load_VQF() - Found VPTK chunk.\n");
                 if (VQA_Load_VPTZ(handle, iffsize)) {
                     return VQAERR_READ;
                 }
+
+                break;
+
+            case CHUNK_VPTK:
+                captainslog_debug("VQA_Load_VQF() - Found VPTK chunk.\n");
+
+                if (VQA_Load_VPTZ(handle, iffsize)) {
+                    return VQAERR_READ;
+                }
+
                 curframe->m_Flags |= 2;
-                continue;
-            }
-            case CHUNK_VPTR: {
+                break;
+
+            case CHUNK_VPTR:
                 captainslog_debug("VQA_Load_VQF() - Found VPTR chunk.\n");
+
                 if (VQA_Load_VPT0(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
 
-            case CHUNK_VPRZ: {
+                break;
+
+            case CHUNK_VPRZ:
                 captainslog_debug("VQA_Load_VQF() - Found VPRZ chunk.\n");
+
                 if (VQA_Load_VPTZ(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
+
+                break;
 
             // BR
             // not proper code, both check and set flags
-            case CHUNK_VPDZ: {
+            case CHUNK_VPDZ:
                 captainslog_debug("VQA_Load_VQF() - Found VPDZ chunk.\n");
-                if (VQA_Load_VPTZ(handle, iffsize)) {
-                    return VQAERR_READ;
-                }
-                continue;
-            }
 
-            case CHUNK_VPKZ: {
-                captainslog_debug("VQA_Load_VQF() - Found VPKZ chunk.\n");
                 if (VQA_Load_VPTZ(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
-            //
+
+                break;
+
+            case CHUNK_VPKZ:
+                captainslog_debug("VQA_Load_VQF() - Found VPKZ chunk.\n");
+
+                if (VQA_Load_VPTZ(handle, iffsize)) {
+                    return VQAERR_READ;
+                }
+
+                break;
 
             // CodeBook Full
-            case CHUNK_CBF0: {
+            case CHUNK_CBF0:
                 captainslog_debug("VQA_Load_VQF() - Found CBF0 chunk.\n");
+
                 if (VQA_Load_CBF0(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
 
-            case CHUNK_CBFZ: {
+                break;
+
+            case CHUNK_CBFZ:
                 captainslog_debug("VQA_Load_VQF() - Found CBFZ chunk.\n");
+
                 if (VQA_Load_CBFZ(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
+
+                break;
 
             // CodeBook Partial
-            case CHUNK_CBP0: {
+            case CHUNK_CBP0:
                 captainslog_debug("VQA_Load_VQF() - Found CBP0 chunk.\n");
+
                 if (VQA_Load_CBP0(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
 
-            case CHUNK_CBPZ: {
+                break;
+
+            case CHUNK_CBPZ:
                 captainslog_debug("VQA_Load_VQF() - Found CBPZ chunk.\n");
+
                 if (VQA_Load_CBPZ(handle, iffsize)) {
                     return VQAERR_READ;
                 }
-                continue;
-            }
+
+                break;
 
             // Color PaLette or Codebook PaLette
-            case CHUNK_CPL0: {
+            case CHUNK_CPL0:
                 captainslog_debug("VQA_Load_VQF() - Found CPL0 chunk.\n");
+
                 if (VQA_Load_CPL0(handle, iffsize)) {
                     return VQAERR_READ;
                 }
+
                 if (!drawer->m_CurPalSize) {
                     memcpy(drawer->m_Palette_24, curframe->m_Palette, curframe->m_PaletteSize);
                     drawer->m_CurPalSize = curframe->m_PaletteSize;
                 }
-                curframe->m_Flags |= 4;
-                continue;
-            }
 
-            case CHUNK_CPLZ: {
+                curframe->m_Flags |= 4;
+                break;
+
+            case CHUNK_CPLZ:
                 captainslog_debug("VQA_Load_VQF() - Found CPLZ chunk.\n");
+
                 if (VQA_Load_CPLZ(handle, iffsize)) {
                     return VQAERR_READ;
                 }
+
                 if (!drawer->m_CurPalSize) {
                     drawer->m_CurPalSize =
                         LCW_Uncomp((curframe->m_PalOffset + curframe->m_Palette), drawer->m_Palette_24, data->m_MaxPalSize);
                 }
-                curframe->m_Flags |= 4;
-                continue;
-            }
 
-            default: {
-                continue;
-            }
+                curframe->m_Flags |= 4;
+                break;
+
+            default:
+                captainslog_debug("VQA_Load_VQF() - Found unhandled chunk.\n");
+                break;
         }
+    }
+
+    if (bytes_loaded > framesize) {
+        captainslog_debug("Loaded more bytes than frame was supposed to contain, %d vs %d.", bytes_loaded, framesize);
     }
 
     return VQAERR_NONE;
@@ -609,7 +628,6 @@ int VQA_Open(VQAHandle *handle, const char *filename, VQAConfig *config)
                     return VQAERR_READ;
                 }
 
-                // HHAAAAAAAAAAXXXXX!
                 // in LOLG VQAs Groupsize is 0 because it only has one codebook chunk so forcing it to common default here,
                 // allows LOLG VQAs to be played
                 if (header->m_Groupsize == 0) {
@@ -643,6 +661,7 @@ int VQA_Open(VQAHandle *handle, const char *filename, VQAConfig *config)
                 captainslog_debug("VQA_Open() - About to call VQA_AllocBuffers().\n");
 
                 handle->m_VQABuf = VQA_AllocBuffers(header, &handle->m_Config);
+
                 if (handle->m_VQABuf == nullptr) {
                     VQA_Close(handle);
                     captainslog_debug("VQA_Open() - VQA_AllocBuffers() failed to allocate data!\n");
@@ -656,6 +675,7 @@ int VQA_Open(VQAHandle *handle, const char *filename, VQAConfig *config)
             // TODO: Needs confirming with a 'Poly VQA file.
             case CHUNK_NAME: {
                 captainslog_debug("VQA_Open() - Found NAME chunk.\n");
+
                 if (handle->m_StreamHandler(handle, ACTION_READ, &chunk, sizeof(VQAChunkHeader))) {
                     VQA_Close(handle);
                     captainslog_debug("VQA_Open() - Failed to read NAME chunk header!\n");
@@ -672,7 +692,6 @@ int VQA_Open(VQAHandle *handle, const char *filename, VQAConfig *config)
                 }
 
                 captainslog_debug("VQA_Open() - %s.\n", buffer);
-
                 captainslog_debug("VQA_Open() - NAME chunk parsed correctly.\n");
 
                 break;
@@ -827,7 +846,7 @@ int VQA_LoadFrame(VQAHandle *handle)
     VQALoader *loader = &data->m_Loader;
     VQADrawer *drawer = &handle->m_VQABuf->m_Drawer;
     VQAFrameNode *curframe = data->m_Loader.m_CurFrame;
-    VQAChunkHeader chunk = data->m_Chunk;
+    VQAChunkHeader *chunk = &data->m_Chunk;
 
     if (handle->m_Header.m_Frames <= data->m_Loader.m_CurFrameNum) {
         return VQAERR_EOF;
@@ -846,17 +865,16 @@ int VQA_LoadFrame(VQAHandle *handle)
 
     while (!frame_loaded) {
         if (!(data->m_Flags & 4)) {
-            if (handle->m_StreamHandler(handle, ACTION_READ, &chunk, sizeof(VQAChunkHeader))) {
+            if (handle->m_StreamHandler(handle, ACTION_READ, chunk, sizeof(*chunk))) {
                 return VQAERR_EOF;
             }
 
-            iffsize = (chunk.m_Size << 24) & 0xFF000000 | (chunk.m_Size << 8) & 0xFF0000 | (chunk.m_Size >> 8) & 0xFF00
-                | (chunk.m_Size >> 24);
+            iffsize = be32toh(chunk->m_Size);
             loader->m_FrameSize += iffsize;
         }
 
         // Sorted by how its commonly in the VQA's
-        switch (chunk.m_ID) {
+        switch (chunk->m_ID) {
             case CHUNK_FINF:
                 captainslog_debug("VQA_LoadFrame() - Found FINF chunk.\n");
 
@@ -864,7 +882,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     return VQAERR_READ;
                 }
 
-                continue;
+                break;
 
             case CHUNK_VQFK:
                 captainslog_debug("VQA_LoadFrame() - Found VQFK chunk.\n");
@@ -875,7 +893,7 @@ int VQA_LoadFrame(VQAHandle *handle)
 
                 curframe->m_Flags |= 2;
                 frame_loaded = true;
-                continue;
+                break;
 
             case CHUNK_VQFR:
                 captainslog_debug("VQA_LoadFrame() - Found VQFR chunk.\n");
@@ -885,10 +903,10 @@ int VQA_LoadFrame(VQAHandle *handle)
                 }
 
                 frame_loaded = true;
-                continue;
+                break;
 
             // Version 3 chunk
-            // Vector Quantized Frame Loop???? is in BR, appears to call Load_VQF
+            // Vector Quantized Frame Loop? appears to call Load_VQF
             // Not the proper code as there's a few checks and flags it sets
             case CHUNK_VQFL:
                 captainslog_debug("VQA_LoadFrame() - Found VQFL chunk.\n");
@@ -898,7 +916,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                 }
 
                 frame_loaded = true;
-                continue;
+                break;
 
             // Vector Pointer Table
             case CHUNK_VPT0:
@@ -909,7 +927,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                 }
 
                 frame_loaded = true;
-                continue;
+                break;
 
             case CHUNK_VPTZ:
                 captainslog_debug("VQA_LoadFrame() - Found VPTZ chunk.\n");
@@ -919,7 +937,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                 }
 
                 frame_loaded = true;
-                continue;
+                break;
 
             // Vector Pointer
             case CHUNK_VPTD:
@@ -930,7 +948,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                 }
 
                 frame_loaded = true;
-                continue;
+                break;
 
             case CHUNK_VPTK:
                 captainslog_debug("VQA_LoadFrame() - Found VPTK chunk.\n");
@@ -941,7 +959,7 @@ int VQA_LoadFrame(VQAHandle *handle)
 
                 curframe->m_Flags |= 2;
                 frame_loaded = true;
-                continue;
+                break;
 
             case CHUNK_VPTR:
                 captainslog_debug("VQA_LoadFrame() - Found VPTR chunk.\n");
@@ -951,7 +969,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                 }
 
                 frame_loaded = true;
-                continue;
+                break;
 
             case CHUNK_VPRZ:
                 captainslog_debug("VQA_LoadFrame() - Found VPRZ chunk.\n");
@@ -961,7 +979,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                 }
 
                 frame_loaded = true;
-                continue;
+                break;
 
             // CodeBook Full
             case CHUNK_CBF0:
@@ -971,7 +989,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     return VQAERR_READ;
                 }
 
-                continue;
+                break;
 
             case CHUNK_CBFZ:
                 captainslog_debug("VQA_LoadFrame() - Found CBFZ chunk.\n");
@@ -980,7 +998,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     return VQAERR_READ;
                 }
 
-                continue;
+                break;
 
             // CodeBook Partial
             case CHUNK_CBP0:
@@ -990,7 +1008,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     return VQAERR_READ;
                 }
 
-                continue;
+                break;
 
             case CHUNK_CBPZ:
                 captainslog_debug("VQA_LoadFrame() - Found CBPZ chunk.\n");
@@ -999,7 +1017,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     return VQAERR_READ;
                 }
 
-                continue;
+                break;
 
             // Color PaLette or Codebook PaLette
             case CHUNK_CPL0:
@@ -1016,7 +1034,7 @@ int VQA_LoadFrame(VQAHandle *handle)
 
                 curframe->m_Flags |= 4;
 
-                continue;
+                break;
 
             case CHUNK_CPLZ:
                 captainslog_debug("VQA_LoadFrame() - Found CPLZ chunk.\n");
@@ -1032,7 +1050,7 @@ int VQA_LoadFrame(VQAHandle *handle)
 
                 curframe->m_Flags |= 4;
 
-                continue;
+                break;
 
             case CHUNK_SND0:
                 captainslog_debug("VQA_LoadFrame() - Found SND0 chunk.\n");
@@ -1054,7 +1072,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     }
                 }
 
-                continue;
+                break;
 
             case CHUNK_SNA0:
                 captainslog_debug("VQA_LoadFrame() - Found SNA0 chunk.\n");
@@ -1077,7 +1095,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     }
                 }
 
-                continue;
+                break;
 
             case CHUNK_SND1:
                 captainslog_debug("VQA_LoadFrame() - Found SND1 chunk.\n");
@@ -1099,7 +1117,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     }
                 }
 
-                continue;
+                break;
 
             case CHUNK_SNA1:
                 captainslog_debug("VQA_LoadFrame() - Found SNA1 chunk.\n");
@@ -1121,7 +1139,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     }
                 }
 
-                continue;
+                break;
 
             case CHUNK_SND2:
                 captainslog_debug("VQA_LoadFrame() - Found SND2 chunk.\n");
@@ -1143,7 +1161,7 @@ int VQA_LoadFrame(VQAHandle *handle)
                     }
                 }
 
-                continue;
+                break;
 
             case CHUNK_SNA2:
                 captainslog_debug("VQA_LoadFrame() - Found SNA2 chunk.\n");
@@ -1164,20 +1182,21 @@ int VQA_LoadFrame(VQAHandle *handle)
                     return VQAERR_SEEK;
                 }
 
-                continue;
+                break;
 
             case CHUNK_SN2J:
                 captainslog_debug("VQA_LoadFrame() - Found SN2J chunk.\n");
-                return VQAERR_SEEK;
+
+                if (handle->m_StreamHandler(handle, ACTION_SEEK, (void *)FS_SEEK_CURRENT, (iffsize + 1) & (~1))) {
+                    return VQAERR_SEEK;
+                }
+
+                break;
 
             default:
-                captainslog_debug("VQA_LoadFrame Read Unsupported Chunk %s\n", &chunk.m_ID);
+                captainslog_debug("VQA_LoadFrame Read Unsupported Chunk %s\n", &chunk->m_ID);
                 break;
         }
-    }
-
-    if (handle->m_StreamHandler(handle, ACTION_SEEK, (void *)FS_SEEK_CURRENT, (iffsize + 1) & (~1))) {
-        return VQAERR_SEEK;
     }
 
     if (loader->m_CurFrameNum > 0 && loader->m_FrameSize > loader->m_MaxFrameSize) {
@@ -1211,6 +1230,7 @@ int VQA_SeekFrame(VQAHandle *handle, int framenum, int fromwhere)
     }
 
     int group = framenum / handle->m_Header.m_Groupsize * handle->m_Header.m_Groupsize;
+
     if (group >= handle->m_Header.m_Groupsize) {
         group -= handle->m_Header.m_Groupsize;
     }
@@ -1333,7 +1353,6 @@ VQAData *VQA_AllocBuffers(VQAHeader *header, VQAConfig *config)
     // Make linked list of framenodes.
     for (int index = 0; index < config->m_NumFrameBufs; ++index) {
         captainslog_debug("VQA_AllocBuffers() - About to create VQAFrameNode struct %d.\n", index);
-
         framenode = (VQAFrameNode *)malloc(data->m_MaxPalSize + data->m_MaxPtrSize + sizeof(VQAFrameNode));
 
         if (!framenode) {
@@ -1344,8 +1363,6 @@ VQAData *VQA_AllocBuffers(VQAHeader *header, VQAConfig *config)
         data->m_MemUsed += data->m_MaxPalSize + data->m_MaxPtrSize + sizeof(VQAFrameNode);
         memset(framenode, 0, sizeof(VQAFrameNode));
         framenode->m_Pointers = reinterpret_cast<uint8_t *>(&framenode[1]);
-        // framenode->m_Palette = &framenode->m_Pointers[1] + data->m_MaxPtrSize; if above &v3[1].m_Pointers;      // is
-        // reinterpret_cast<uint8_t*>(&framenode[1]); // then i guess bottom one should too?
         framenode->m_Palette = reinterpret_cast<uint8_t *>(&framenode[1]) + data->m_MaxPtrSize;
         framenode->m_Codebook = data->m_CBData;
 
@@ -1378,8 +1395,7 @@ VQAData *VQA_AllocBuffers(VQAHeader *header, VQAConfig *config)
 
         data->m_Drawer.m_ImageWidth = header->m_ImageWidth;
         data->m_Drawer.m_ImageHeight = header->m_ImageHeight;
-        data->m_MemUsed += header->m_ImageHeight * header->m_ImageWidth; //!!this is!!
-
+        data->m_MemUsed += header->m_ImageHeight * header->m_ImageWidth;
     } else {
         data->m_Drawer.m_ImageWidth = config->m_ImageWidth;
         data->m_Drawer.m_ImageHeight = config->m_ImageHeight;
@@ -1447,9 +1463,7 @@ VQAData *VQA_AllocBuffers(VQAHeader *header, VQAConfig *config)
                 }
 
                 data->m_MemUsed += audio->m_NumAudBlocks * 2;
-
                 memset(audio->m_IsLoaded, 0, audio->m_NumAudBlocks * 2);
-
                 audio->m_TempBufLen = 2 * (audio->field_38 / header->m_FPS) + 100;
                 audio->m_TempBuf = (uint8_t *)malloc(2 * (audio->field_38 / header->m_FPS) + 100);
 
