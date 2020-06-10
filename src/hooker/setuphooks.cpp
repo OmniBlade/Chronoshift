@@ -121,6 +121,7 @@
 #include "vqadrawer.h"
 #include "vqaloader.h"
 #include "vqapalette.h"
+#include "vqatask.h"
 #include "wsa.h"
 #include "xordelta.h"
 #include <malloc.h>
@@ -1229,6 +1230,11 @@ void Setup_Hooks()
     Hook_Function(0x005C695C, &VQA_LoadFrame);
     Hook_Function(0x005C5E90, &VQA_Open);
 
+    // vqatask.cpp
+    Hook_Function(0x005C5AD0, &VQA_Play);
+    Hook_Function(0x005C5A94, &VQA_Init);
+    Hook_Function(0x005C5A60, &VQA_Alloc);
+    Hook_Function(0x005C5A88, &VQA_Free);
 #endif
 }
 

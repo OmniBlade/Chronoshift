@@ -270,6 +270,7 @@ set(GAMEENGINE_SRC
     game/vqa/vqadrawer.cpp
     game/vqa/vqaloader.cpp
     game/vqa/vqapalette.cpp
+    game/vqa/vqatask.cpp
     game/vqa/vqaver.cpp
 )
 
