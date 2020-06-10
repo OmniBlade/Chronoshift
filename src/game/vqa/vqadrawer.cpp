@@ -104,9 +104,11 @@ int PageFlip_Nop(VQAHandle *handle)
 uint8_t *VQA_GetPalette(VQAHandle *handle)
 {
     uint8_t *palette = 0;
+
     if (handle->m_VQABuf->m_Drawer.m_CurPalSize > 0) {
         palette = handle->m_VQABuf->m_Drawer.m_Palette_24;
     }
+
     return palette;
 }
 
@@ -274,9 +276,8 @@ int VQA_SelectFrame(VQAHandle *handle)
         return VQAERR_NONE;
     }
 
-    unsigned time = VQA_GetTime(handle);
-    unsigned curtime = time;
-    int desiredframe = handle->m_Config.m_DrawRate * time / 60;
+    unsigned curtime = VQA_GetTime(handle);
+    int desiredframe = handle->m_Config.m_DrawRate * curtime / 60;
     vqabuf->m_Drawer.m_DesiredFrame = desiredframe;
 
     if (handle->m_Config.m_DrawRate == handle->m_Config.m_FrameRate) {

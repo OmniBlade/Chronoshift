@@ -118,6 +118,7 @@
 #include "vortex.h"
 #include "vqaadpcm.h"
 #include "vqaaudio.h"
+#include "vqadrawer.h"
 #include "vqaloader.h"
 #include "vqapalette.h"
 #include "wsa.h"
@@ -126,6 +127,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+int VQA_DrawFrame_Buffer(VQAHandle *handle);
 
 void Setup_Hooks()
 {
@@ -1214,6 +1217,13 @@ void Setup_Hooks()
     Hook_Function(0x005CC060, &VQA_TimerMethod);
 
     // vqadrawer.cpp
+    Hook_Function(0x005DAC10, &VQA_DrawFrame_Buffer);
+    Hook_Function(0x005DA200, &VQA_GetPalette);
+    Hook_Function(0x005DA220, &VQA_GetPaletteSize);
+    Hook_Function(0x005DA22C, &VQA_SetDrawBuffer);
+    Hook_Function(0x005DA36C, &VQA_ConfigureDrawer);
+    Hook_Function(0x005DA5DC, &VQA_SelectFrame);
+    Hook_Function(0x005DA758, &VQA_PrepareFrame);
 
     // vqaloader.cpp
     Hook_Function(0x005C695C, &VQA_LoadFrame);
